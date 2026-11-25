@@ -118,3 +118,20 @@ COPIA DE SEGURIDAD (MUY IMPORTANTE)
 Los datos viven SOLO en ese teléfono. Si se pierde o se borra, se pierden.
 Una vez por semana: ⚙️ Ajustes > ⬇ Guardar copia y mándala a tu correo,
 WhatsApp o Drive. Con ⬆ Restaurar copia la pasas a otro teléfono.
+
+GRUPO DE COCINA Y RESPONSABLE DE CAJA (nuevo en v1.4)
+-----------------------------------------------------
+- Arriba en «Vender» está «Turno de hoy»: elige el grupo de cocina
+  (dominicanos, peruanos, colombianos…) y escribe el nombre de quien cobra.
+  Sin el responsable (y el grupo) la app no deja cobrar.
+- Los dos salen en cada boleta («Grupo» y «Le atendió») y en el cierre.
+- Los grupos se añaden, cambian o borran en ⚙️ Ajustes → «Grupos de cocina».
+- En «Cierre» puedes ver todos los grupos juntos (con un resumen por grupo)
+  o solo un grupo.
+
+IMPRIMIR EL CIERRE (nuevo en v1.4)
+----------------------------------
+- «🧾 Impresora pequeña»: ticket de 58 u 80 mm (el papel elegido en Ajustes;
+  si allí pusiste A4, usa 80 mm).
+- «📄 Impresora A4»: hoja completa con recuadros y tablas a todo el ancho
+  (hora, nombre, grupo, detalle, forma de pago, quién atendió) y firmas.

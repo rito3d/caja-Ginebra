@@ -87,7 +87,35 @@ button:disabled{opacity:.45}
   #ticket td.r{text-align:right;white-space:nowrap;padding-left:6px}
   #ticket h2{font-size:13px;margin:8px 0 2px;border-bottom:1px dashed #000}
   #ticket .tot td{font-weight:bold;border-top:1px dashed #000}
+  /* Boleta en hoja A4: centrada y legible */
+  #ticket.a4b{width:120mm;margin:0 auto;font-size:13px}
+  /* Cierre en hoja A4: ocupa todo el ancho, con columnas */
+  #ticket.a4{font:10.5pt/1.4 -apple-system,"Segoe UI",Roboto,Arial,sans-serif;width:100%;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #ticket.a4 .cab{display:flex;align-items:center;gap:14px;border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:10px}
+  #ticket.a4 .cab img{max-height:22mm;max-width:40mm}
+  #ticket.a4 .cab h1{text-align:left;font-size:18pt;margin:0}
+  #ticket.a4 .cab .der{margin-left:auto;text-align:right}
+  #ticket.a4 .cab .der b{font-size:15pt;display:block}
+  #ticket.a4 .cajas{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px}
+  #ticket.a4 .cajas div{border:1px solid #999;border-radius:6px;padding:5px 8px}
+  #ticket.a4 .cajas small{display:block;font-size:8pt;color:#444;text-transform:uppercase}
+  #ticket.a4 .cajas b{font-size:12.5pt}
+  #ticket.a4 .cajas .t{background:#e9e9e9;border-color:#000}
+  #ticket.a4 h2{font-size:11pt;margin:12px 0 4px;border-bottom:1.5px solid #000;padding-bottom:2px}
+  #ticket.a4 table.g{width:100%;border-collapse:collapse}
+  #ticket.a4 table.g th{text-align:left;font-size:8.5pt;text-transform:uppercase;border-bottom:1px solid #000;padding:3px 4px}
+  #ticket.a4 table.g td{padding:3px 4px;border-bottom:1px solid #ddd}
+  #ticket.a4 table.g tr{break-inside:avoid}
+  #ticket.a4 table.g .r{text-align:right;white-space:nowrap}
+  #ticket.a4 table.g tr.tot td{border-top:1.5px solid #000;border-bottom:0;font-weight:bold}
+  #ticket.a4 .dos{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  #ticket.a4 .nada{color:#555;padding:3px 4px}
+  #ticket.a4 .firmas{display:grid;grid-template-columns:1fr 1fr;gap:50px;margin-top:45px;break-inside:avoid}
+  #ticket.a4 .firmas div{border-top:1px solid #000;padding-top:4px;text-align:center}
 }
+.turno{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.turno label{margin-top:0}
+@media (max-width:480px){.turno{grid-template-columns:1fr}.turno>div+div label{margin-top:4px}}
 </style>
 </head>
 <body>
@@ -96,6 +124,14 @@ button:disabled{opacity:.45}
 <main>
 <!-- VENDER -->
 <section id="v-vender">
+  <div class="card">
+    <h2>Turno de hoy</h2>
+    <div class="turno">
+      <div><label for="tGrupo">👥 Grupo de cocina</label><select id="tGrupo"></select></div>
+      <div><label for="tCajero">👤 Responsable de caja</label><input id="tCajero" list="cajeros" autocomplete="off" placeholder="Tu nombre"></div>
+    </div>
+    <datalist id="cajeros"></datalist>
+  </div>
   <div class="card">
     <h2>Menús de hoy</h2>
     <div id="listaMenus"></div>
@@ -132,11 +168,17 @@ button:disabled{opacity:.45}
     <h2>Cierre de caja</h2>
     <label for="fechaCierre">Día</label>
     <input type="date" id="fechaCierre">
+    <label for="grupoCierre">Grupo de cocina</label>
+    <select id="grupoCierre"></select>
   </div>
   <div id="cierre"></div>
-  <div class="row">
-    <button class="sec" id="btnImprimir" style="padding:15px">🖨 Imprimir</button>
-    <button class="sec" id="btnCompartir" style="padding:15px">📤 Compartir</button>
+  <div class="card">
+    <h2>Imprimir cierre</h2>
+    <div class="row">
+      <button class="sec" id="btnImpTicket" style="padding:15px">🧾 Impresora pequeña<br><small style="font-weight:600" id="txtPapelTicket"></small></button>
+      <button class="sec" id="btnImpA4" style="padding:15px">📄 Impresora A4<br><small style="font-weight:600">hoja completa</small></button>
+    </div>
+    <button class="sec" id="btnCompartir" style="padding:15px;width:100%;margin-top:8px">📤 Compartir por WhatsApp / notas</button>
   </div>
 </section>
 
@@ -146,6 +188,16 @@ button:disabled{opacity:.45}
     <h2>Menús y precios</h2>
     <div id="editMenus"></div>
     <button class="sec" id="btnAddMenu" style="width:100%;margin-top:8px">＋ Añadir menú</button>
+  </div>
+  <div class="card">
+    <h2>👥 Grupos de cocina</h2>
+    <div id="editGrupos"></div>
+    <button class="sec" id="btnAddGrupo" style="width:100%;margin-top:8px">＋ Añadir grupo</button>
+  </div>
+  <div class="card">
+    <h2>👤 Responsables de caja</h2>
+    <p class="det" style="margin-top:0">Se guardan solos al escribirlos en «Turno de hoy». Aquí puedes borrar los que ya no se usan.</p>
+    <div id="editCajeros"></div>
   </div>
   <div class="card">
     <h2>Datos de la boleta</h2>
@@ -168,8 +220,9 @@ button:disabled{opacity:.45}
     <h2>Impresora</h2>
     <label for="cfgImpresion">Cómo imprimir</label>
     <select id="cfgImpresion"><option value="bluetooth">Bluetooth directo (Android + Chrome)</option><option value="sistema">Impresión del teléfono (AirPrint / app de la impresora)</option></select>
-    <label for="cfgPapel">Papel</label>
+    <label for="cfgPapel">Papel de la boleta</label>
     <select id="cfgPapel"><option value="58">Ticket 58 mm</option><option value="80">Ticket 80 mm</option><option value="a4">Hoja normal (A4)</option></select>
+    <p class="det" style="margin:6px 0 0">El cierre de caja tiene sus propios botones: «Impresora pequeña» (58/80 mm) y «Impresora A4».</p>
     <label for="cfgBoleta">Imprimir boleta después de cada cobro</label>
     <select id="cfgBoleta"><option value="preguntar">Preguntar cada vez</option><option value="siempre">Siempre (automático)</option><option value="nunca">Nunca</option></select>
     <div class="det" id="btEstado" style="margin:12px 0 8px"></div>
@@ -187,7 +240,7 @@ button:disabled{opacity:.45}
     </div>
     <input type="file" id="fileImport" accept=".json,application/json" class="oculto">
   </div>
-  <p class="det" style="text-align:center">Caja MMM Ginebra · v1.3 · funciona sin internet</p>
+  <p class="det" style="text-align:center">Caja MMM Ginebra · v1.4 · funciona sin internet</p>
 </section>
 </main>
 
@@ -229,6 +282,7 @@ button:disabled{opacity:.45}
 </div></div>
 <div class="toast" id="toast"></div>
 <div id="ticket"></div>
+<style id="estiloPagina"></style>
 
 <script>
 "use strict";
@@ -245,9 +299,12 @@ function etiqueta(m,p){return m==='mixto'&&p?'Efectivo '+dinero(p.efectivo)+' + 
 /* ---------- Datos ---------- */
 let db;
 const CFG_DEF={nombre:'MMM Ginebra',moneda:'CHF',papel:'58',direccion:'',telefono:'',
-  mensaje:'¡Gracias y Dios le bendiga!',logo:'',boleta:'preguntar',impresion:'bluetooth',numSig:1,impresora:''};
+  mensaje:'¡Gracias y Dios le bendiga!',logo:'',boleta:'preguntar',impresion:'bluetooth',numSig:1,impresora:'',grupo:'',cajero:''};
+const GRUPOS_DEF=['Grupo de dominicanos','Grupo de peruanos','Grupo de colombianos'];
 function normalizar(d){
   d.cfg={...CFG_DEF,...(d.cfg||{})};
+  if(!Array.isArray(d.grupos))d.grupos=GRUPOS_DEF.slice();
+  if(!Array.isArray(d.cajeros))d.cajeros=[];
   if(d.cfg.papel==='ticket')d.cfg.papel='80';
   if(!('bluetooth'in navigator)&&d.cfg.impresion==='bluetooth')d.cfg.impresion='sistema';
   d.menus=d.menus||[];d.ventas=d.ventas||[];return d;
@@ -269,6 +326,28 @@ function dinero(c){return (c/100).toFixed(2)+' '+db.cfg.moneda}
 function aCent(v){const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?Math.round(n*100):0}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function detalle(v){return v.items.map(i=>i.cant+'× '+i.nombre).join(', ')}
+function nomGrupo(g){return g||'Sin grupo'}
+function unicos(a){return [...new Set(a.filter(Boolean))]}
+
+/* ---------- Turno: grupo de cocina y responsable de caja ---------- */
+function pintarTurno(){
+  const s=$('tGrupo'),lista=unicos([...db.grupos,db.cfg.grupo]);
+  s.innerHTML='<option value="">— Elige el grupo —</option>'+lista.map(g=>`<option>${esc(g)}</option>`).join('');
+  s.value=db.cfg.grupo;$('tCajero').value=db.cfg.cajero;
+  $('cajeros').innerHTML=db.cajeros.map(n=>`<option value="${esc(n)}">`).join('');
+}
+$('tGrupo').onchange=e=>{db.cfg.grupo=e.target.value;guardar()};
+$('tCajero').onchange=e=>{const n=e.target.value.trim();db.cfg.cajero=n;
+  if(n&&!db.cajeros.some(x=>x.toLowerCase()===n.toLowerCase()))db.cajeros.push(n),db.cajeros.sort((a,b)=>a.localeCompare(b));
+  guardar();pintarTurno()};
+/* Antes de cobrar: tiene que estar el responsable (y el grupo, si hay grupos). */
+function turnoOk(){
+  const falta=!db.cfg.cajero?'tCajero':(db.grupos.length&&!db.cfg.grupo?'tGrupo':null);
+  if(!falta)return true;
+  if($('v-vender').classList.contains('oculto'))verVista('vender');
+  aviso(falta==='tCajero'?'Escribe el nombre del responsable de caja':'Elige el grupo de cocina de hoy');
+  setTimeout(()=>{$(falta).focus();window.scrollTo(0,0)},80);return false;
+}
 
 /* ---------- UI general ---------- */
 let tAviso;function aviso(t){const e=$('toast');e.textContent=t;e.classList.add('ver');clearTimeout(tAviso);tAviso=setTimeout(()=>e.classList.remove('ver'),2200)}
@@ -291,7 +370,7 @@ function cabecera(){$('hNombre').textContent=db.cfg.nombre;$('hFecha').textConte
 /* ---------- Vender ---------- */
 let carrito={};
 function pintarVender(){
-  cabecera();
+  cabecera();pintarTurno();
   const l=$('listaMenus');l.innerHTML='';
   if(!db.menus.length)l.innerHTML='<div class="vacio">Añade los menús en ⚙️ Ajustes.</div>';
   db.menus.forEach(m=>{
@@ -313,6 +392,7 @@ document.querySelectorAll('[data-pago]').forEach(b=>b.onclick=()=>vender(b.datas
 async function vender(metodo){
   const items=db.menus.filter(m=>carrito[m.id]>0).map(m=>({nombre:m.nombre,precio:m.precio,cant:carrito[m.id]}));
   if(!items.length)return aviso('Elige al menos un menú con ＋');
+  if(!turnoOk())return;
   const cliente=$('cliente').value.trim();
   if(metodo==='fiado'&&!cliente){$('cliente').focus();return aviso('Para fiado escribe el nombre de la persona')}
   const total=items.reduce((s,i)=>s+i.precio*i.cant,0);
@@ -328,7 +408,7 @@ async function vender(metodo){
   if(metodo==='efectivo'){caja=await pedirEfectivo(total,cliente);if(!caja)return}
   let partes=null;
   if(metodo==='mixto'){partes=await pedirMixto(total,cliente);if(!partes)return}
-  const v={id:uid(),num:db.cfg.numSig++,ts:Date.now(),fecha:hoy(),cliente,items,total,metodo,
+  const v={id:uid(),num:db.cfg.numSig++,ts:Date.now(),fecha:hoy(),cliente,items,total,metodo,grupo:db.cfg.grupo,cajero:db.cfg.cajero,
     pagado:metodo!=='fiado',pagoMetodo:metodo==='fiado'?null:metodo,pagoFecha:metodo==='fiado'?null:hoy(),pagoTs:metodo==='fiado'?null:Date.now()};
   if(caja){v.recibido=caja.recibido;v.vuelto=caja.vuelto}
   if(partes)v.partes=partes;
@@ -340,10 +420,11 @@ async function vender(metodo){
 function venderParcial(items,total,cliente,pp){
   const ts=Date.now(),pagado=pp.efectivo+pp.tarjeta,resto=total-pagado;
   const m=pp.efectivo&&pp.tarjeta?'mixto':(pp.efectivo?'efectivo':'tarjeta');
-  const v={id:uid(),num:db.cfg.numSig++,ts,fecha:hoy(),cliente,items,total:pagado,metodo:m,partes:m==='mixto'?{...pp}:null,parcial:true,
+  const g=db.cfg.grupo,cj=db.cfg.cajero;
+  const v={id:uid(),num:db.cfg.numSig++,ts,fecha:hoy(),cliente,items,total:pagado,metodo:m,grupo:g,cajero:cj,partes:m==='mixto'?{...pp}:null,parcial:true,
     pagado:true,pagoMetodo:m,pagoFecha:hoy(),pagoTs:ts};
   const f={id:uid(),num:v.num,ts:ts+1,fecha:hoy(),cliente,items:[{nombre:'Resto de la boleta Nº '+v.num,precio:resto,cant:1}],
-    total:resto,metodo:'fiado',sinPlatos:true,pagado:false,pagoMetodo:null,pagoFecha:null,pagoTs:null};
+    total:resto,metodo:'fiado',grupo:g,cajero:cj,sinPlatos:true,pagado:false,pagoMetodo:null,pagoFecha:null,pagoTs:null};
   db.ventas.push(v,f);guardar();carrito={};$('cliente').value='';pintarVender();
   const doc=docVenta(v);doc.total=total;doc.pagadoAhora=pagado;doc.debe=resto;doc.partes=pp;doc.metodo='mixto';
   despuesDeCobrar(doc,'✔ Pagó '+dinero(pagado)+' · 📝 queda debiendo '+dinero(resto));
@@ -420,7 +501,7 @@ function pintarVentasHoy(){
     const estado=v.metodo==='fiado'?(v.pagado?'fiado → pagado':'fiado'):v.metodo+(v.parcial?' (parte)':'');
     const f=document.createElement('div');f.className='fila';
     f.innerHTML=`<div class="izq"><div class="nom">${esc(v.cliente||'Sin nombre')}<span class="tag" style="background:${COLOR[v.metodo]}">${esc(estado)}</span></div>
-      <div class="det">${hora(v.ts)} · ${esc(detalle(v))}</div></div><div class="monto">${dinero(v.total)}</div>`;
+      <div class="det">${hora(v.ts)} · ${esc(detalle(v))}${v.grupo||v.cajero?'<br>👥 '+esc(nomGrupo(v.grupo))+(v.cajero?' · 👤 '+esc(v.cajero):''):''}</div></div><div class="monto">${dinero(v.total)}</div>`;
     f.onclick=()=>preguntar(v.cliente||'Sin nombre',detalle(v)+' · '+dinero(v.total)+(v.vuelto>0?' · Recibido '+dinero(v.recibido)+', vuelto '+dinero(v.vuelto):''),[
       ...(v.metodo==='fiado'&&!v.pagado?[{t:'💰 Ya pagó lo que debe',c:'efec',f:()=>cobrar(db.ventas.filter(x=>x.cliente===v.cliente&&x.metodo==='fiado'&&!x.pagado),v.cliente)}]:[]),
       {t:'🧾 Imprimir boleta',c:'tarj',f:()=>imprimirBoleta(docVenta(v))},
@@ -466,17 +547,19 @@ function aplicarPago(vs,partes){
     const monto=Math.min(P,v.total);
     if(monto<v.total){ // pago parcial: separar el resto como nueva deuda
       db.ventas.push({...v,id:uid(),items:[{nombre:v.sinPlatos?v.items[0].nombre:'Resto de: '+detalle(v),precio:v.total-monto,cant:1}],
-        total:v.total-monto,sinPlatos:true,pagado:false,pagoMetodo:null,pagoFecha:null,pagoTs:null,pagoPartes:null});
+        total:v.total-monto,sinPlatos:true,pagado:false,pagoMetodo:null,pagoFecha:null,pagoTs:null,pagoPartes:null,pagoGrupo:null,pagoCajero:null});
       v.total=monto;v.parcial=true;
     }
     const ce=Math.min(e,monto),ct=monto-ce;e-=ce;t-=ct;
     v.pagado=true;v.pagoFecha=hoy();v.pagoTs=ts;v.pagoMetodo=ce&&ct?'mixto':(ce?'efectivo':'tarjeta');v.pagoPartes={efectivo:ce,tarjeta:ct};
+    v.pagoGrupo=db.cfg.grupo;v.pagoCajero=db.cfg.cajero;
     lineas.push({cant:1,nombre:'Fiado '+fechaBonita(v.fecha)+': '+detalle(v),precio:monto});
   }
   return lineas;
 }
 function deudaDe(nombre){return pendientes().filter(v=>v.cliente===nombre).reduce((s,v)=>s+v.total,0)}
 function cobrar(vs,nombre,abono){
+  if(!turnoOk())return;
   const tot=vs.reduce((s,v)=>s+v.total,0);
   const pagar=(m,caja,partes)=>{
     partes=partes||{efectivo:m==='efectivo'?tot:0,tarjeta:m==='tarjeta'?tot:0};
@@ -484,7 +567,7 @@ function cobrar(vs,nombre,abono){
     const metodo=partes.efectivo&&partes.tarjeta?'mixto':(partes.efectivo?'efectivo':'tarjeta');
     const debe=deudaDe(nombre);
     const doc={titulo:debe>0?'ABONO A FIADO':'PAGO DE FIADO',num:db.cfg.numSig++,ts:Date.now(),cliente:nombre,total:pagado,metodo,partes,
-      lineas,recibido:caja?caja.recibido:null,vuelto:caja?caja.vuelto:0,debe};
+      lineas,recibido:caja?caja.recibido:null,vuelto:caja?caja.vuelto:0,debe,grupo:db.cfg.grupo,cajero:db.cfg.cajero};
     guardar();despuesDeCobrar(doc,'✔ '+nombre+' pagó '+dinero(pagado)+' ('+etiqueta(metodo,partes)+')'+(debe>0?' · todavía debe '+dinero(debe):' · ya no debe nada'))};
   if(abono){pedirParcial(tot,nombre,'Abonar una parte de la deuda').then(p=>{if(p)pagar(null,null,p)});return}
   preguntar(nombre+' paga '+dinero(tot),'¿Cómo pagó?',[
@@ -495,85 +578,172 @@ function cobrar(vs,nombre,abono){
 
 /* ---------- Cierre ---------- */
 $('fechaCierre').onchange=pintarCierre;
-function datosCierre(f){
-  const ventasDia=db.ventas.filter(v=>v.fecha===f).sort((a,b)=>a.ts-b.ts);
+$('grupoCierre').onchange=pintarCierre;
+/* g = '' → todos los grupos; si no, solo ese grupo */
+function datosCierre(f,g=''){
+  const de=(v,k)=>!g||(v[k]||'')===g;
+  const ventasDia=db.ventas.filter(v=>v.fecha===f&&de(v,'grupo')).sort((a,b)=>a.ts-b.ts);
   const pagadasDia=ventasDia.filter(v=>v.metodo!=='fiado');
   const fiadosDia=ventasDia.filter(v=>v.metodo==='fiado');
-  const cobrosFiado=db.ventas.filter(v=>v.metodo==='fiado'&&v.pagado&&v.pagoFecha===f).sort((a,b)=>a.pagoTs-b.pagoTs);
+  const cobrosFiado=db.ventas.filter(v=>v.metodo==='fiado'&&v.pagado&&v.pagoFecha===f&&de(v,'pagoGrupo')).sort((a,b)=>a.pagoTs-b.pagoTs);
   const suma=(a,fn=()=>true)=>a.filter(fn).reduce((s,v)=>s+v.total,0);
   const sp=(a,fn,k)=>a.reduce((s,v)=>s+(fn(v)[k]||0),0);
   const efec=sp(pagadasDia,partesVenta,'efectivo')+sp(cobrosFiado,partesPago,'efectivo');
   const tarj=sp(pagadasDia,partesVenta,'tarjeta')+sp(cobrosFiado,partesPago,'tarjeta');
   const platos={};ventasDia.filter(v=>!v.sinPlatos).forEach(v=>v.items.forEach(i=>platos[i.nombre]=(platos[i.nombre]||0)+i.cant));
-  return {f,ventasDia,pagadasDia,fiadosDia,cobrosFiado,efec,tarj,cobrado:efec+tarj,
+  // Resumen por grupo (solo tiene sentido viendo todos los grupos)
+  const porGrupo={};const pg=k=>porGrupo[k]=porGrupo[k]||{efec:0,tarj:0,fiado:0};
+  pagadasDia.forEach(v=>{const p=partesVenta(v),x=pg(v.grupo||'');x.efec+=p.efectivo;x.tarj+=p.tarjeta});
+  cobrosFiado.forEach(v=>{const p=partesPago(v),x=pg(v.pagoGrupo||'');x.efec+=p.efectivo;x.tarj+=p.tarjeta});
+  fiadosDia.filter(v=>!v.pagado).forEach(v=>pg(v.grupo||'').fiado+=v.total);
+  const grupos=unicos([...ventasDia.map(v=>v.grupo),...cobrosFiado.map(v=>v.pagoGrupo)]);
+  const cajeros=unicos([...ventasDia.map(v=>v.cajero),...cobrosFiado.map(v=>v.pagoCajero)]);
+  return {f,g,ventasDia,pagadasDia,fiadosDia,cobrosFiado,efec,tarj,cobrado:efec+tarj,
     fiadoDia:suma(fiadosDia),sigueDia:suma(fiadosDia,v=>!v.pagado),vendido:suma(ventasDia),platos,
-    deudaTotal:pendientes().reduce((s,v)=>s+v.total,0)};
+    nPlatos:Object.values(platos).reduce((a,b)=>a+b,0),porGrupo:!g&&Object.keys(porGrupo).length>1?porGrupo:null,
+    grupoTxt:g||(grupos.length?grupos.join(', '):(db.cfg.grupo||'—')),
+    cajeroTxt:cajeros.length?cajeros.join(', '):(db.cfg.cajero||'—'),
+    deudaTotal:pendientes().filter(v=>de(v,'grupo')).reduce((s,v)=>s+v.total,0)};
 }
+function cierreActual(){return datosCierre($('fechaCierre').value||hoy(),$('grupoCierre').value)}
 function pintarCierre(){
   if(!$('fechaCierre').value)$('fechaCierre').value=hoy();
-  const d=datosCierre($('fechaCierre').value),c=$('cierre');
-  const lista=(arr,fn)=>arr.length?arr.map(fn).join(''):'<div class="vacio">Ninguno</div>';
+  const f=$('fechaCierre').value,s=$('grupoCierre'),antes=s.value;
+  const delDia=db.ventas.filter(v=>v.fecha===f||v.pagoFecha===f).flatMap(v=>[v.grupo,v.pagoFecha===f?v.pagoGrupo:'']);
+  const lista=unicos([...delDia,...db.grupos]);
+  s.innerHTML='<option value="">Todos los grupos</option>'+lista.map(g=>`<option>${esc(g)}</option>`).join('');
+  s.value=lista.includes(antes)?antes:'';
+  const pt=papelTicket();$('txtPapelTicket').textContent='ticket '+pt+' mm';
+  const d=cierreActual(),c=$('cierre');
+  const lista2=(arr,fn)=>arr.length?arr.map(fn).join(''):'<div class="vacio">Ninguno</div>';
+  const quien=(gr,cj)=>(!d.g?'👥 '+esc(nomGrupo(gr))+' · ':'')+(cj?'👤 '+esc(cj)+' · ':'');
   c.innerHTML=`
+  <div class="card">
+    <div class="fila" style="padding-top:0"><div class="izq"><div class="det">👥 Grupo de cocina</div><div class="nom">${esc(d.grupoTxt)}</div></div></div>
+    <div class="fila"><div class="izq"><div class="det">👤 Responsable de caja</div><div class="nom">${esc(d.cajeroTxt)}</div></div></div>
+  </div>
   <div class="card"><div class="resumen">
     <div class="caja"><small>💵 Efectivo en caja</small><b>${dinero(d.efec)}</b></div>
     <div class="caja"><small>💳 Tarjeta</small><b>${dinero(d.tarj)}</b></div>
     <div class="caja grande"><small>Total cobrado este día</small><b>${dinero(d.cobrado)}</b></div>
     <div class="caja"><small>📝 Sigue debiendo (de hoy)</small><b style="color:var(--fiado)">${dinero(d.sigueDia)}</b></div>
-    <div class="caja"><small>Platos vendidos</small><b>${Object.values(d.platos).reduce((a,b)=>a+b,0)}</b></div>
+    <div class="caja"><small>Platos vendidos</small><b>${d.nPlatos}</b></div>
   </div>
   <div class="det" style="margin-top:8px">${Object.entries(d.platos).map(([n,q])=>esc(n)+': '+q).join(' · ')||''}</div></div>
+  ${d.porGrupo?`<div class="card"><h2>👥 Por grupo</h2>${Object.entries(d.porGrupo).map(([g,x])=>`<div class="fila"><div class="izq"><div class="nom">${esc(nomGrupo(g))}</div><div class="det">💵 ${dinero(x.efec)} · 💳 ${dinero(x.tarj)}${x.fiado?' · 📝 debe '+dinero(x.fiado):''}</div></div><div class="monto">${dinero(x.efec+x.tarj)}</div></div>`).join('')}</div>`:''}
   <div class="card"><h2>✔ Pagaron (${d.pagadasDia.length})</h2>
-    ${lista(d.pagadasDia,v=>`<div class="fila"><div class="izq"><div class="nom">${esc(v.cliente||'Sin nombre')}<span class="tag" style="background:${COLOR[v.metodo]}">${METODO[v.metodo]}</span></div><div class="det">${v.metodo==='mixto'?etiqueta('mixto',v.partes)+' · ':''}${hora(v.ts)} · ${esc(detalle(v))}</div></div><div class="monto">${dinero(v.total)}</div></div>`)}</div>
+    ${lista2(d.pagadasDia,v=>`<div class="fila"><div class="izq"><div class="nom">${esc(v.cliente||'Sin nombre')}<span class="tag" style="background:${COLOR[v.metodo]}">${METODO[v.metodo]}</span></div><div class="det">${v.metodo==='mixto'?etiqueta('mixto',v.partes)+' · ':''}${hora(v.ts)} · ${quien(v.grupo,v.cajero)}${esc(detalle(v))}</div></div><div class="monto">${dinero(v.total)}</div></div>`)}</div>
   <div class="card"><h2>💰 Fiados anteriores cobrados este día (${d.cobrosFiado.length})</h2>
-    ${lista(d.cobrosFiado,v=>`<div class="fila"><div class="izq"><div class="nom">${esc(v.cliente)}<span class="tag" style="background:${COLOR[v.pagoMetodo]}">${METODO[v.pagoMetodo]}</span></div><div class="det">${v.pagoMetodo==='mixto'?etiqueta('mixto',v.pagoPartes)+' · ':''}Fiado del ${fechaBonita(v.fecha)} · ${esc(detalle(v))}</div></div><div class="monto">${dinero(v.total)}</div></div>`)}</div>
+    ${lista2(d.cobrosFiado,v=>`<div class="fila"><div class="izq"><div class="nom">${esc(v.cliente)}<span class="tag" style="background:${COLOR[v.pagoMetodo]}">${METODO[v.pagoMetodo]}</span></div><div class="det">${v.pagoMetodo==='mixto'?etiqueta('mixto',v.pagoPartes)+' · ':''}Fiado del ${fechaBonita(v.fecha)} · ${quien(v.pagoGrupo,v.pagoCajero)}${esc(detalle(v))}</div></div><div class="monto">${dinero(v.total)}</div></div>`)}</div>
   <div class="card"><h2>📝 Apuntados como fiado hoy (${d.fiadosDia.length})</h2>
-    ${lista(d.fiadosDia,v=>`<div class="fila"><div class="izq"><div class="nom">${esc(v.cliente)}${v.pagado?'<span class="tag" style="background:var(--efec)">ya pagó</span>':''}</div><div class="det">${hora(v.ts)} · ${esc(detalle(v))}</div></div><div class="monto">${dinero(v.total)}</div></div>`)}
-    <div class="fila"><div class="nom">Deuda total acumulada (todas las fechas)</div><div class="monto" style="color:var(--fiado)">${dinero(d.deudaTotal)}</div></div></div>`;
+    ${lista2(d.fiadosDia,v=>`<div class="fila"><div class="izq"><div class="nom">${esc(v.cliente)}${v.pagado?'<span class="tag" style="background:var(--efec)">ya pagó</span>':''}</div><div class="det">${hora(v.ts)} · ${quien(v.grupo,v.cajero)}${esc(detalle(v))}</div></div><div class="monto">${dinero(v.total)}</div></div>`)}
+    <div class="fila"><div class="nom">Deuda total acumulada${d.g?' del grupo':''} (todas las fechas)</div><div class="monto" style="color:var(--fiado)">${dinero(d.deudaTotal)}</div></div></div>`;
 }
 function textoCierre(d){
   const L=[],lin='--------------------------------';
-  L.push(db.cfg.nombre.toUpperCase(),'CIERRE DE CAJA '+fechaBonita(d.f),lin);
+  L.push(db.cfg.nombre.toUpperCase(),'CIERRE DE CAJA '+fechaBonita(d.f),'Grupo: '+d.grupoTxt,'Responsable de caja: '+d.cajeroTxt,lin);
   L.push('Efectivo:        '+dinero(d.efec),'Tarjeta:         '+dinero(d.tarj),'TOTAL COBRADO:   '+dinero(d.cobrado),'Sigue debiendo:  '+dinero(d.sigueDia),lin);
+  if(d.porGrupo){L.push('POR GRUPO:');Object.entries(d.porGrupo).forEach(([g,x])=>L.push('- '+nomGrupo(g)+': '+dinero(x.efec+x.tarj)+' (efectivo '+dinero(x.efec)+', tarjeta '+dinero(x.tarj)+')'));L.push(lin)}
   L.push('PAGARON:');d.pagadasDia.forEach(v=>L.push('- '+(v.cliente||'Sin nombre')+' · '+etiqueta(v.metodo,v.partes)+' · '+dinero(v.total)));if(!d.pagadasDia.length)L.push('  Ninguno');
   if(d.cobrosFiado.length){L.push('','FIADOS COBRADOS:');d.cobrosFiado.forEach(v=>L.push('- '+v.cliente+' · '+etiqueta(v.pagoMetodo,v.pagoPartes)+' · '+dinero(v.total)+' (del '+fechaBonita(v.fecha)+')'))}
   L.push('','APUNTADOS COMO FIADO HOY:');d.fiadosDia.forEach(v=>L.push('- '+v.cliente+' · '+dinero(v.total)+(v.pagado?' (ya pagó)':'')));if(!d.fiadosDia.length)L.push('  Ninguno');
-  L.push(lin,'Deuda total acumulada: '+dinero(d.deudaTotal));
+  L.push(lin,'Deuda total acumulada'+(d.g?' del grupo':'')+': '+dinero(d.deudaTotal));
   return L.join('\n');
 }
+/* Cierre para impresora pequeña (58 / 80 mm) por impresión del teléfono */
 function ticketHTML(d){
   const tabla=(arr,fn)=>arr.length?'<table>'+arr.map(fn).join('')+'</table>':'<div>Ninguno</div>';
   return `<h1>${esc(db.cfg.nombre)}</h1><div class="c">CIERRE DE CAJA · ${fechaBonita(d.f)}</div><div class="c">Impreso ${fechaBonita(hoy())} ${hora(Date.now())}</div>
+  <div style="margin-top:4px">Grupo: <b>${esc(d.grupoTxt)}</b></div><div>Responsable: <b>${esc(d.cajeroTxt)}</b></div>
   <h2>RESUMEN</h2><table>
   <tr><td>Efectivo</td><td class="r">${dinero(d.efec)}</td></tr><tr><td>Tarjeta</td><td class="r">${dinero(d.tarj)}</td></tr>
   <tr class="tot"><td>TOTAL COBRADO</td><td class="r">${dinero(d.cobrado)}</td></tr>
   <tr><td>Sigue debiendo (de hoy)</td><td class="r">${dinero(d.sigueDia)}</td></tr>
   ${Object.entries(d.platos).map(([n,q])=>`<tr><td>${esc(n)}</td><td class="r">${q}</td></tr>`).join('')}</table>
+  ${d.porGrupo?'<h2>POR GRUPO</h2>'+tabla(Object.entries(d.porGrupo),([g,x])=>`<tr><td>${esc(nomGrupo(g))}<br><small>Ef. ${dinero(x.efec)} · Tj. ${dinero(x.tarj)}</small></td><td class="r">${dinero(x.efec+x.tarj)}</td></tr>`):''}
   <h2>PAGARON (${d.pagadasDia.length})</h2>${tabla(d.pagadasDia,v=>`<tr><td>${esc(v.cliente||'Sin nombre')}<br><small>${etiqueta(v.metodo,v.partes)} · ${esc(detalle(v))}</small></td><td class="r">${dinero(v.total)}</td></tr>`)}
   ${d.cobrosFiado.length?`<h2>FIADOS COBRADOS (${d.cobrosFiado.length})</h2>`+tabla(d.cobrosFiado,v=>`<tr><td>${esc(v.cliente)}<br><small>${etiqueta(v.pagoMetodo,v.pagoPartes)} · fiado del ${fechaBonita(v.fecha)}</small></td><td class="r">${dinero(v.total)}</td></tr>`):''}
   <h2>FIADOS DE HOY (${d.fiadosDia.length})</h2>${tabla(d.fiadosDia,v=>`<tr><td>${esc(v.cliente)}${v.pagado?' (ya pagó)':''}<br><small>${esc(detalle(v))}</small></td><td class="r">${dinero(v.total)}</td></tr>`)}
   <table><tr class="tot"><td>Deuda total acumulada</td><td class="r">${dinero(d.deudaTotal)}</td></tr></table>
-  <p class="c">Firma: ____________________</p>`;
+  <p class="c" style="margin-top:14px">Firma: ____________________<br>${esc(d.cajeroTxt)}</p>`;
 }
-$('btnImprimir').onclick=()=>{
-  const d=datosCierre($('fechaCierre').value);
-  if(db.cfg.impresion==='bluetooth'&&db.cfg.papel!=='a4')return btImprimir(escposCierre(d));
-  imprimirSistema(ticketHTML(d));
+/* Cierre para hoja A4: usa todo el ancho, tablas con columnas */
+function cierreA4(d){
+  const c=db.cfg,todos=!d.g;
+  const tabla=(cab,arr,fila,pie)=>arr.length
+    ?`<table class="g"><tr>${cab.map(h=>`<th${h.endsWith('·r')?' class="r"':''}>${h.replace('·r','')}</th>`).join('')}</tr>${arr.map(fila).join('')}${pie||''}</table>`
+    :'<div class="nada">Ninguno</div>';
+  const td=(x,r)=>`<td${r?' class="r"':''}>${x}</td>`;
+  const sumaT=a=>a.reduce((s,v)=>s+v.total,0);
+  const cols=(n)=>`<tr class="tot"><td colspan="${n}">Total</td>`;
+  return `
+  <div class="cab">${c.logo?`<img src="${c.logo}" alt="">`:''}
+    <div><h1>${esc(c.nombre)}</h1>${c.direccion?`<div>${esc(c.direccion)}</div>`:''}${c.telefono?`<div>Tel. ${esc(c.telefono)}</div>`:''}</div>
+    <div class="der"><b>CIERRE DE CAJA</b>${fechaBonita(d.f)}</div></div>
+  <div class="cajas">
+    <div><small>Día</small><b>${fechaBonita(d.f)}</b></div>
+    <div style="grid-column:span 2"><small>Grupo de cocina</small><b>${esc(d.grupoTxt)}</b></div>
+    <div><small>Impreso</small><b>${fechaBonita(hoy())} ${hora(Date.now())}</b></div>
+    <div style="grid-column:span 4"><small>Responsable de caja</small><b>${esc(d.cajeroTxt)}</b></div>
+  </div>
+  <div class="cajas">
+    <div><small>💵 Efectivo</small><b>${dinero(d.efec)}</b></div>
+    <div><small>💳 Tarjeta</small><b>${dinero(d.tarj)}</b></div>
+    <div class="t"><small>Total cobrado</small><b>${dinero(d.cobrado)}</b></div>
+    <div><small>Sigue debiendo (de hoy)</small><b>${dinero(d.sigueDia)}</b></div>
+    <div><small>Ventas del día</small><b>${d.ventasDia.length}</b></div>
+    <div><small>Platos vendidos</small><b>${d.nPlatos}</b></div>
+    <div><small>Total vendido (con fiado)</small><b>${dinero(d.vendido)}</b></div>
+    <div><small>Deuda acumulada${todos?'':' del grupo'}</small><b>${dinero(d.deudaTotal)}</b></div>
+  </div>
+  <div class="dos">
+    <div><h2>Platos vendidos</h2>${tabla(['Menú','Cantidad·r'],Object.entries(d.platos),([n,q])=>`<tr>${td(esc(n))}${td(q,1)}</tr>`)}</div>
+    <div><h2>${d.porGrupo?'Por grupo':'Forma de pago'}</h2>${d.porGrupo
+      ?tabla(['Grupo','Efectivo·r','Tarjeta·r','Total·r'],Object.entries(d.porGrupo),([g,x])=>`<tr>${td(esc(nomGrupo(g)))}${td(dinero(x.efec),1)}${td(dinero(x.tarj),1)}${td('<b>'+dinero(x.efec+x.tarj)+'</b>',1)}</tr>`)
+      :tabla(['Forma','Importe·r'],[['Efectivo',d.efec],['Tarjeta',d.tarj]],([n,m])=>`<tr>${td(n)}${td(dinero(m),1)}</tr>`,`<tr class="tot"><td>Total cobrado</td>${td(dinero(d.cobrado),1)}</tr>`)}</div>
+  </div>
+  <h2>Pagaron (${d.pagadasDia.length})</h2>
+  ${tabla(['Hora','Nombre',...(todos?['Grupo']:[]),'Detalle','Pago','Atendió','Importe·r'],d.pagadasDia,
+    v=>`<tr>${td(hora(v.ts))}${td(esc(v.cliente||'Sin nombre'))}${todos?td(esc(nomGrupo(v.grupo))):''}${td(esc(detalle(v)))}${td(esc(etiqueta(v.metodo,v.partes)))}${td(esc(v.cajero||'—'))}${td(dinero(v.total),1)}</tr>`,
+    cols(todos?6:5)+td(dinero(sumaT(d.pagadasDia)),1)+'</tr>')}
+  ${d.cobrosFiado.length?`<h2>Fiados anteriores cobrados este día (${d.cobrosFiado.length})</h2>
+  ${tabla(['Fiado del','Nombre',...(todos?['Grupo']:[]),'Detalle','Pago','Cobró','Importe·r'],d.cobrosFiado,
+    v=>`<tr>${td(fechaBonita(v.fecha))}${td(esc(v.cliente))}${todos?td(esc(nomGrupo(v.pagoGrupo))):''}${td(esc(detalle(v)))}${td(esc(etiqueta(v.pagoMetodo,v.pagoPartes)))}${td(esc(v.pagoCajero||'—'))}${td(dinero(v.total),1)}</tr>`,
+    cols(todos?6:5)+td(dinero(sumaT(d.cobrosFiado)),1)+'</tr>')}`:''}
+  <h2>Apuntados como fiado hoy (${d.fiadosDia.length})</h2>
+  ${tabla(['Hora','Nombre',...(todos?['Grupo']:[]),'Detalle','Estado','Atendió','Importe·r'],d.fiadosDia,
+    v=>`<tr>${td(hora(v.ts))}${td(esc(v.cliente))}${todos?td(esc(nomGrupo(v.grupo))):''}${td(esc(detalle(v)))}${td(v.pagado?'Ya pagó':'Debe')}${td(esc(v.cajero||'—'))}${td(dinero(v.total),1)}</tr>`,
+    cols(todos?6:5)+td(dinero(sumaT(d.fiadosDia)),1)+'</tr>')}
+  <div class="firmas"><div>Responsable de caja<br><b>${esc(d.cajeroTxt)}</b></div><div>Revisado por<br>&nbsp;</div></div>`;
+}
+/* La impresora pequeña usa el papel de Ajustes; si allí está A4, usa 80 mm. */
+function papelTicket(){return db.cfg.papel==='a4'?'80':db.cfg.papel}
+$('btnImpTicket').onclick=()=>{
+  const d=cierreActual(),p=papelTicket();
+  if(db.cfg.impresion==='bluetooth'&&navigator.bluetooth)return btImprimir(escposCierre(d,p));
+  imprimirSistema(ticketHTML(d),'p'+p);
 };
+$('btnImpA4').onclick=()=>imprimirSistema(cierreA4(cierreActual()),'a4');
 
 /* ================= IMPRESIÓN: boleta ================= */
 function docVenta(v){
   return {titulo:v.metodo==='fiado'&&!v.pagado?'BOLETA - FIADO':'BOLETA',num:v.num,ts:v.ts,cliente:v.cliente,
-    lineas:v.items.map(i=>({cant:i.cant,nombre:i.nombre,precio:i.precio})),total:v.total,
+    lineas:v.items.map(i=>({cant:i.cant,nombre:i.nombre,precio:i.precio})),total:v.total,grupo:v.grupo,cajero:v.cajero,
     metodo:v.metodo,partes:v.partes,pendiente:v.metodo==='fiado'&&!v.pagado,recibido:v.recibido,vuelto:v.vuelto||0};
 }
 function fechaHora(ts){const d=new Date(ts);return fechaBonita(fechaISO(d))+' '+hora(ts)}
-function imprimirSistema(html){
-  const t=$('ticket');t.innerHTML=html;t.className=db.cfg.papel==='a4'?'':'p'+db.cfg.papel;
-  setTimeout(()=>window.print(),60);
+/* modo: 'p58' / 'p80' (ticket), 'a4b' (boleta en A4), 'a4' (cierre en A4) */
+function imprimirSistema(html,modo){
+  const t=$('ticket');t.innerHTML=html;t.className=modo;
+  $('estiloPagina').textContent=modo==='a4'||modo==='a4b'
+    ?'@media print{@page{size:A4 portrait;margin:12mm}}'
+    :'@media print{@page{size:'+(modo==='p58'?'58mm':'80mm')+' auto;margin:3mm}}';
+  setTimeout(()=>window.print(),80);
 }
 function imprimirBoleta(doc){
-  if(db.cfg.impresion==='bluetooth'&&db.cfg.papel!=='a4')return btImprimir(escposBoleta(doc));
-  imprimirSistema(boletaHTML(doc));
+  const p=db.cfg.papel;
+  if(db.cfg.impresion==='bluetooth'&&navigator.bluetooth&&p!=='a4')return btImprimir(escposBoleta(doc,p));
+  imprimirSistema(boletaHTML(doc),p==='a4'?'a4b':'p'+p);
 }
 function boletaHTML(doc){
   const c=db.cfg;
@@ -581,6 +751,7 @@ function boletaHTML(doc){
   <h1>${esc(c.nombre)}</h1>${c.direccion?`<div class="c">${esc(c.direccion)}</div>`:''}${c.telefono?`<div class="c">Tel. ${esc(c.telefono)}</div>`:''}
   <h2 class="c" style="border:0">${esc(doc.titulo)} Nº ${doc.num??'-'}</h2>
   <div>${fechaHora(doc.ts)}</div>${doc.cliente?`<div>Cliente: ${esc(doc.cliente)}</div>`:''}
+  ${doc.grupo?`<div>Grupo: ${esc(doc.grupo)}</div>`:''}${doc.cajero?`<div>Le atendió: ${esc(doc.cajero)}</div>`:''}
   <table style="margin-top:4px;border-top:1px dashed #000">${doc.lineas.map(l=>`<tr><td>${l.cant>1||doc.titulo.startsWith('BOLETA')?l.cant+'× ':''}${esc(l.nombre)}</td><td class="r">${dinero(l.precio*l.cant)}</td></tr>`).join('')}
   <tr class="tot"><td style="font-size:14px">TOTAL</td><td class="r" style="font-size:14px">${dinero(doc.total)}</td></tr>
   <tr><td>Pago</td><td class="r">${doc.pendiente?'PENDIENTE (fiado)':METODO[doc.metodo]}</td></tr>
@@ -613,12 +784,12 @@ class Esc{
   bytes(){return new Uint8Array(this.b)}
 }
 let logoRaster=null,logoRasterKey='';
-function prepararLogo(){
+function prepararLogo(papel){
   return new Promise(res=>{
-    const key=(db.cfg.logo||'').length+'|'+db.cfg.papel;
+    const key=(db.cfg.logo||'').length+'|'+papel;
     if(!db.cfg.logo)return res(null);if(logoRasterKey===key)return res(logoRaster);
     const im=new Image();im.onload=()=>{
-      const maxW=db.cfg.papel==='80'?384:256,w=Math.min(maxW,Math.floor(im.width/8)*8||maxW),h=Math.round(im.height*w/im.width);
+      const maxW=papel==='80'?384:256,w=Math.min(maxW,Math.floor(im.width/8)*8||maxW),h=Math.round(im.height*w/im.width);
       const cv=document.createElement('canvas');cv.width=w;cv.height=h;const g=cv.getContext('2d');
       g.fillStyle='#fff';g.fillRect(0,0,w,h);g.drawImage(im,0,0,w,h);
       const px=g.getImageData(0,0,w,h).data,bw=w/8,data=new Uint8Array(bw*h);
@@ -634,10 +805,11 @@ function cabeceraEsc(e,n,logo){
   if(c.direccion)envolver(c.direccion,n).forEach(l=>e.ln(l));if(c.telefono)e.ln('Tel. '+c.telefono);
   return e;
 }
-async function escposBoleta(doc){
-  const n=COLS[db.cfg.papel]||32,e=cabeceraEsc(new Esc(),n,await prepararLogo());
+async function escposBoleta(doc,papel){
+  const n=COLS[papel]||32,e=cabeceraEsc(new Esc(),n,await prepararLogo(papel));
   e.ln().negrita(1).ln(doc.titulo+' No '+(doc.num??'-')).negrita(0).izq();
-  e.ln(fechaHora(doc.ts));if(doc.cliente)e.ln('Cliente: '+doc.cliente);e.linea(n);
+  e.ln(fechaHora(doc.ts));if(doc.cliente)e.ln('Cliente: '+doc.cliente);
+  if(doc.grupo)envolver('Grupo: '+doc.grupo,n).forEach(l=>e.ln(l));if(doc.cajero)envolver('Le atendio: '+doc.cajero,n).forEach(l=>e.ln(l));e.linea(n);
   doc.lineas.forEach(l=>{const t=(l.cant+'x ')+l.nombre,m=dinero(l.precio*l.cant);
     const ls=envolver(t,n-m.length-1);ls.forEach((x,i)=>e.ln(i===ls.length-1?lr(x,m,n):x))});
   e.linea(n).negrita(1).doble(1).ln(lr('TOTAL',dinero(doc.total),Math.floor(n/2))).doble(0).negrita(0);
@@ -649,17 +821,19 @@ async function escposBoleta(doc){
   if(db.cfg.mensaje){e.ln().centro();envolver(db.cfg.mensaje,n).forEach(l=>e.ln(l))}
   return e.fin().bytes();
 }
-async function escposCierre(d){
-  const n=COLS[db.cfg.papel]||32,e=cabeceraEsc(new Esc(),n,await prepararLogo());
+async function escposCierre(d,papel){
+  const n=COLS[papel]||32,e=cabeceraEsc(new Esc(),n,await prepararLogo(papel));
   e.ln().negrita(1).ln('CIERRE DE CAJA').ln(fechaBonita(d.f)).negrita(0).izq().linea(n);
+  envolver('Grupo: '+d.grupoTxt,n).forEach(l=>e.ln(l));envolver('Responsable: '+d.cajeroTxt,n).forEach(l=>e.ln(l));e.linea(n);
   e.ln(lr('Efectivo',dinero(d.efec),n)).ln(lr('Tarjeta',dinero(d.tarj),n));
   e.negrita(1).ln(lr('TOTAL COBRADO',dinero(d.cobrado),n)).negrita(0).ln(lr('Sigue debiendo (hoy)',dinero(d.sigueDia),n));
   Object.entries(d.platos).forEach(([p,q])=>e.ln(lr(p,String(q),n)));
+  if(d.porGrupo){e.linea(n).negrita(1).ln('POR GRUPO').negrita(0);Object.entries(d.porGrupo).forEach(([g,x])=>e.ln(lr(nomGrupo(g),dinero(x.efec+x.tarj),n)).ln('  Ef. '+dinero(x.efec)+' / Tj. '+dinero(x.tarj)))}
   const sec=(t,arr,fn)=>{e.linea(n).negrita(1).ln(t+' ('+arr.length+')').negrita(0);if(!arr.length)e.ln('Ninguno');arr.forEach(v=>{const [a,b]=fn(v);e.ln(lr(a,dinero(v.total),n));if(b)e.ln('  '+ascii(b).slice(0,n-2))})};
   sec('PAGARON',d.pagadasDia,v=>[v.cliente||'Sin nombre',etiqueta(v.metodo,v.partes)+' - '+detalle(v)]);
   if(d.cobrosFiado.length)sec('FIADOS COBRADOS',d.cobrosFiado,v=>[v.cliente,etiqueta(v.pagoMetodo,v.pagoPartes)+' - fiado del '+fechaBonita(v.fecha)]);
   sec('FIADOS DE HOY',d.fiadosDia,v=>[v.cliente+(v.pagado?' (ya pago)':''),detalle(v)]);
-  e.linea(n).negrita(1).ln(lr('Deuda total',dinero(d.deudaTotal),n)).negrita(0).ln().ln().ln('Firma: _______________');
+  e.linea(n).negrita(1).ln(lr('Deuda total',dinero(d.deudaTotal),n)).negrita(0).ln().ln().ln('Firma: _______________').ln(d.cajeroTxt);
   return e.fin().bytes();
 }
 
@@ -705,7 +879,7 @@ function pintarEstadoBT(){
   el.textContent=bt.ch&&bt.dev?.gatt.connected?'🟢 Conectada: '+(bt.dev.name||'impresora'):(db.cfg.impresora?'⚪ Última impresora: '+db.cfg.impresora+' (se conecta al imprimir)':'⚪ Ninguna impresora conectada');
 }
 $('btnCompartir').onclick=async()=>{
-  const txt=textoCierre(datosCierre($('fechaCierre').value));
+  const txt=textoCierre(cierreActual());
   try{if(navigator.share){await navigator.share({title:'Cierre de caja',text:txt});return}}catch(e){if(e.name==='AbortError')return}
   try{await navigator.clipboard.writeText(txt);aviso('Copiado. Pégalo en WhatsApp o notas.')}catch(e){preguntar('Cierre de caja',txt,[])}
 };
@@ -715,6 +889,24 @@ function pintarAjustes(){
   ['nombre','moneda','papel','direccion','telefono','mensaje','boleta','impresion'].forEach(k=>$('cfg'+k[0].toUpperCase()+k.slice(1)).value=db.cfg[k]);
   $('logoPrev').innerHTML=db.cfg.logo?`<img src="${db.cfg.logo}" alt="Logo">`:'Sin logo';
   pintarEstadoBT();
+  const eg=$('editGrupos');eg.innerHTML='';
+  if(!db.grupos.length)eg.innerHTML='<div class="vacio">No hay grupos.</div>';
+  db.grupos.forEach((g,i)=>{
+    const r=document.createElement('div');r.className='row';r.style.cssText='margin-bottom:8px;align-items:center';
+    r.innerHTML=`<input value="${esc(g)}" aria-label="Nombre del grupo"><button class="rojo" style="flex:0 0 46px;height:46px" aria-label="Borrar">✕</button>`;
+    const [n,b]=r.children;
+    n.onchange=()=>{const nuevo=n.value.trim()||g;if(db.cfg.grupo===g)db.cfg.grupo=nuevo;db.grupos[i]=nuevo;guardar();pintarAjustes()};
+    b.onclick=()=>preguntar('¿Borrar «'+g+'»?','Las ventas ya hechas siguen guardadas con su grupo.',[{t:'Borrar grupo',c:'rojo',f:()=>{db.grupos.splice(i,1);if(db.cfg.grupo===g)db.cfg.grupo='';guardar();pintarAjustes()}}]);
+    eg.append(r);
+  });
+  const ec=$('editCajeros');ec.innerHTML='';
+  if(!db.cajeros.length)ec.innerHTML='<div class="vacio">Todavía no hay responsables.</div>';
+  db.cajeros.forEach(nm=>{
+    const r=document.createElement('div');r.className='fila';
+    r.innerHTML=`<div class="nom">${esc(nm)}</div><button class="rojo peq">Borrar</button>`;
+    r.querySelector('button').onclick=()=>{db.cajeros=db.cajeros.filter(x=>x!==nm);guardar();pintarAjustes()};
+    ec.append(r);
+  });
   const c=$('editMenus');c.innerHTML='';
   if(!db.menus.length)c.innerHTML='<div class="vacio">No hay menús.</div>';
   db.menus.forEach(m=>{
@@ -727,6 +919,7 @@ function pintarAjustes(){
     c.append(r);
   });
 }
+$('btnAddGrupo').onclick=()=>{db.grupos.push('Nuevo grupo');guardar();pintarAjustes();const ins=$('editGrupos').querySelectorAll('input');const u=ins[ins.length-1];u.focus();u.select()};
 $('btnAddMenu').onclick=()=>{db.menus.push({id:uid(),nombre:'Nuevo menú',precio:1000});guardar();pintarAjustes()};
 $('cfgNombre').onchange=e=>{db.cfg.nombre=e.target.value.trim()||'MMM Ginebra';guardar();cabecera()};
 $('cfgMoneda').onchange=e=>{db.cfg.moneda=e.target.value.trim()||'CHF';guardar()};
@@ -744,7 +937,7 @@ $('fileLogo').onchange=e=>{
   im.onerror=()=>aviso('No se pudo leer esa imagen');im.src=url;
 };
 $('btnBT').onclick=async()=>{try{await btConectar();aviso('✔ Impresora conectada')}catch(e){if(e.name!=='NotFoundError')preguntar('No se pudo conectar',e.message||String(e),[],'Entendido')}};
-$('btnPrueba').onclick=()=>imprimirBoleta({titulo:'BOLETA',num:0,ts:Date.now(),cliente:'Prueba',
+$('btnPrueba').onclick=()=>imprimirBoleta({titulo:'BOLETA',num:0,ts:Date.now(),cliente:'Prueba',grupo:db.cfg.grupo,cajero:db.cfg.cajero,
   lineas:db.menus.slice(0,2).map(m=>({cant:1,nombre:m.nombre,precio:m.precio})),total:db.menus.slice(0,2).reduce((s,m)=>s+m.precio,0),
   metodo:'efectivo',recibido:5000,vuelto:5000-db.menus.slice(0,2).reduce((s,m)=>s+m.precio,0)});
 $('btnExport').onclick=async()=>{
@@ -758,7 +951,7 @@ $('fileImport').onchange=async e=>{
   const f=e.target.files[0];e.target.value='';if(!f)return;
   try{const d=JSON.parse(await f.text());if(!d||!Array.isArray(d.ventas)||!Array.isArray(d.menus))throw 0;
     preguntar('¿Restaurar esta copia?','Se reemplazarán los datos actuales de este teléfono ('+d.ventas.length+' ventas en la copia).',[
-      {t:'Restaurar',c:'rojo',f:()=>{db=d;guardar();aviso('Copia restaurada');verVista('vender')}}]);
+      {t:'Restaurar',c:'rojo',f:()=>{db=normalizar(d);guardar();aviso('Copia restaurada');verVista('vender')}}]);
   }catch(_){aviso('Ese archivo no es una copia válida')}
 };
 
