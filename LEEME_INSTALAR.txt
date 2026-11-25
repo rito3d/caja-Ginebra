@@ -1,0 +1,120 @@
+CAJA MMM GINEBRA - Cómo instalarla en el celular
+==================================================
+
+QUÉ ES
+Una app sencilla para cobrar los menús del día. Funciona SIN INTERNET.
+- Vender: eliges el menú (+/−), escribes el nombre y pulsas Efectivo, Tarjeta o Fiado.
+- Fiados: lista de quién debe y cuánto. Cuando pagan, pulsas "Pagó" y eliges cómo.
+- Cierre: total en efectivo, tarjeta, lo que quedó debiendo, con nombres. Imprimir o Compartir.
+- Ajustes: nombres y precios de los menús, moneda y copia de seguridad.
+
+IMPORTANTE: solo hace falta internet UNA VEZ, en casa, para instalarla.
+Después funciona en la iglesia sin internet.
+
+---------------------------------------------------
+PASO 1 · Subir la app a internet (una sola vez, desde la PC)
+---------------------------------------------------
+Se usa GitHub Pages (gratis). Ya tienes cuenta de GitHub.
+1. Entra en https://github.com y pulsa "New" (nuevo repositorio).
+2. Nombre: caja-mmm  · Marca "Public" · pulsa "Create repository".
+3. Pulsa "uploading an existing file" y arrastra TODOS los archivos de esta
+   carpeta (index.html, sw.js, manifest.json, icon.svg, icon-180.png, icon-512.png).
+   Pulsa "Commit changes".
+4. Ve a Settings > Pages. En "Branch" elige "main" y "/(root)". Pulsa Save.
+5. Espera 1-2 minutos. Tu app quedará en:
+   https://TU-USUARIO.github.io/caja-mmm/
+   (Los datos de ventas NO se suben a internet: se guardan solo en el teléfono.)
+
+---------------------------------------------------
+PASO 2 · Instalar en el celular (con internet, en casa)
+---------------------------------------------------
+iPHONE (usar Safari):
+1. Abre la dirección https://TU-USUARIO.github.io/caja-mmm/ en Safari.
+2. Pulsa el botón Compartir (cuadrado con flecha) > "Añadir a pantalla de inicio".
+3. Abre la app desde el nuevo icono "Caja MMM" una vez.
+
+ANDROID (usar Chrome):
+1. Abre la dirección en Chrome.
+2. Menú ⋮ > "Instalar aplicación" o "Añadir a pantalla de inicio".
+3. Abre la app desde el nuevo icono una vez.
+
+PRUEBA: pon el teléfono en modo avión y abre la app desde el icono.
+Si se abre, ya está lista para la iglesia.
+
+---------------------------------------------------
+USO DIARIO
+---------------------------------------------------
+- Abre SIEMPRE la app desde el icono (no desde el navegador),
+  así los datos se mantienen.
+- Primero pon los menús del día y sus precios en ⚙️ Ajustes.
+- Para fiado es obligatorio escribir el nombre.
+- Si te equivocas en una venta, tócala en "Ventas de hoy" y bórrala.
+- Los nombres ya usados aparecen como sugerencia al escribir.
+
+---------------------------------------------------
+COBRO EN EFECTIVO Y VUELTO (nuevo en v1.1)
+---------------------------------------------------
+Al pulsar Efectivo se abre "¿Con cuánto paga?". Escribe el billete
+(o pulsa 50 / 100 / 200 CHF) y la app muestra en grande el VUELTO.
+Si lo dejas vacío, se cobra exacto. Si falta dinero, no deja cobrar.
+También funciona cuando alguien paga un fiado en efectivo.
+
+---------------------------------------------------
+PAGO MIXTO: EFECTIVO + TARJETA (nuevo en v1.2)
+---------------------------------------------------
+Botón 💵💳 Mixto: escribes cuánto paga en efectivo (ej.: 50) y la app
+calcula el resto con tarjeta (ej.: 30 de un total de 80).
+También sirve para pagar fiados. En el cierre, cada parte se suma
+en su columna (Efectivo / Tarjeta) y la boleta muestra las dos partes.
+
+---------------------------------------------------
+PAGA UNA PARTE Y EL RESTO FIADO · ABONOS (nuevo en v1.3)
+---------------------------------------------------
+- Al pulsar 📝 Fiado, la app pregunta "¿Paga algo ahora?".
+  "Paga una parte ahora": escribes lo que da en efectivo y/o tarjeta,
+  y el resto queda como fiado con su nombre.
+- En 📝 Fiados, cada persona tiene "Pagó todo" y "Abonar una parte".
+  Puede pagar su deuda poco a poco; la app descuenta lo abonado.
+- Si paga el mismo día u hora: toca su fiado en "Ventas de hoy" >
+  "Ya pagó lo que debe".
+- En el cierre: el dinero entra en Efectivo o Tarjeta según cómo pagó,
+  y "Sigue debiendo" muestra solo lo que todavía falta.
+
+---------------------------------------------------
+BOLETA E IMPRESORA BLUETOOTH (nuevo en v1.1)
+---------------------------------------------------
+En ⚙️ Ajustes > "Datos de la boleta": logo, nombre, dirección, teléfono
+y mensaje final. En "Impresora": papel (58 u 80 mm) y si quieres imprimir
+la boleta siempre, preguntar o nunca.
+La boleta lleva: logo, datos de la iglesia, Nº de boleta, fecha y hora,
+cliente, platos, total, forma de pago, recibido y vuelto.
+Una boleta vieja se reimprime tocando la venta en "Ventas de hoy".
+
+ANTES DE COMPRAR LA IMPRESORA:
+- Con ANDROID + Chrome: compra una impresora térmica de 58 mm que diga
+  "BLE" o "Bluetooth 4.0/5.0" y "ESC/POS". Así imprime directo desde la app:
+  Ajustes > Cómo imprimir: "Bluetooth directo" > Conectar impresora.
+  Si solo es Bluetooth clásico (no BLE): instala la app RawBT y elige
+  "Impresión del teléfono".
+- Con iPHONE: Safari NO permite Bluetooth directo. Opciones:
+  a) una impresora con AirPrint (WiFi) y "Impresión del teléfono", o
+  b) abrir la app en el navegador "Bluefy" (App Store), que sí permite
+     Bluetooth BLE. Pruébalo antes de comprar si usarás iPhone.
+- Si puedes elegir, usa un teléfono ANDROID para la caja: es lo más sencillo.
+
+IMPRIMIR EL CIERRE
+- 🧾 Cierre > elige el día > 🖨 Imprimir (sale por la misma impresora).
+- Si no hay impresora: el cierre queda guardado; imprímelo luego eligiendo
+  ese día, o usa 📤 Compartir para mandarlo por WhatsApp.
+
+ACTUALIZAR A UNA VERSIÓN NUEVA
+Sube los archivos nuevos a GitHub (reemplazando los viejos). Luego, con
+internet, abre la app desde el icono, ciérrala y ábrela otra vez.
+Las ventas y fiados guardados NO se pierden.
+
+---------------------------------------------------
+COPIA DE SEGURIDAD (MUY IMPORTANTE)
+---------------------------------------------------
+Los datos viven SOLO en ese teléfono. Si se pierde o se borra, se pierden.
+Una vez por semana: ⚙️ Ajustes > ⬇ Guardar copia y mándala a tu correo,
+WhatsApp o Drive. Con ⬆ Restaurar copia la pasas a otro teléfono.
