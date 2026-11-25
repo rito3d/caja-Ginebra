@@ -57,7 +57,7 @@ h2{font-size:17px;margin:0 0 10px}
 .toast.ver{opacity:.95}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:30}
 .modal.ver{display:flex}
-.modal .hoja{background:#fff;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));width:100%;max-width:700px}
+.modal .hoja{max-height:94vh;overflow-y:auto;background:#fff;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));width:100%;max-width:700px}
 .modal h3{margin:0 0 6px}.modal p{margin:0 0 14px;color:var(--gris)}
 .modal .botones{display:grid;gap:8px}.modal .botones button{padding:15px}
 label{display:block;font-size:13px;color:var(--gris);font-weight:650;margin:10px 0 5px}
@@ -113,6 +113,10 @@ button:disabled{opacity:.45}
   #ticket.a4 .firmas{display:grid;grid-template-columns:1fr 1fr;gap:50px;margin-top:45px;break-inside:avoid}
   #ticket.a4 .firmas div{border-top:1px solid #000;padding-top:4px;text-align:center}
 }
+.debo{background:#fff7e6;border:2px solid #d97706;border-radius:14px;padding:10px 12px;margin-bottom:12px}
+.debo b.m{display:block;text-align:center;font-size:30px;color:#b45309}.debo small.m{display:block;text-align:center;color:#b45309;font-weight:700;margin-top:10px}
+.btnDebo{width:100%;padding:13px;margin-bottom:10px;background:#fff7e6;color:#b45309;border:2px dashed #d97706}
+.avisoDebo{background:#fff7e6;border-color:#d97706;cursor:pointer}
 .turno{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .turno label{margin-top:0}
 @media (max-width:480px){.turno{grid-template-columns:1fr}.turno>div+div label{margin-top:4px}}
@@ -124,6 +128,7 @@ button:disabled{opacity:.45}
 <main>
 <!-- VENDER -->
 <section id="v-vender">
+  <div class="card avisoDebo oculto" id="avisoDebo"></div>
   <div class="card">
     <h2>Turno de hoy</h2>
     <div class="turno">
@@ -154,6 +159,11 @@ button:disabled{opacity:.45}
 
 <!-- FIADOS -->
 <section id="v-fiados" class="oculto">
+  <div class="card debo oculto" id="cardDebo" style="padding:14px">
+    <h2 style="color:#b45309">🙏 La caja les debe vuelto</h2>
+    <div class="total" style="margin-top:0;color:#b45309"><span>Total que debemos</span><span id="deboTotal">0.00</span></div>
+    <div id="listaDebo"></div>
+  </div>
   <div class="card">
     <h2>Personas que deben</h2>
     <div class="total" style="margin-top:0"><span>Deuda total</span><span id="deudaTotal">0.00</span></div>
@@ -240,7 +250,7 @@ button:disabled{opacity:.45}
     </div>
     <input type="file" id="fileImport" accept=".json,application/json" class="oculto">
   </div>
-  <p class="det" style="text-align:center">Caja MMM Ginebra · v1.4 · funciona sin internet</p>
+  <p class="det" style="text-align:center">Caja MMM Ginebra · v1.5 · funciona sin internet</p>
 </section>
 </main>
 
@@ -259,6 +269,14 @@ button:disabled{opacity:.45}
   <input id="cjRecibido" inputmode="decimal" placeholder="Vacío = paga exacto" style="font-size:22px;font-weight:800">
   <div class="billetes" id="cjBilletes"></div>
   <div class="vueltoBox" id="cjVueltoBox"><small>Vuelto a devolver</small><b id="cjVuelto">0.00</b></div>
+  <button class="btnDebo oculto" id="cjDebo">🙏 No tengo sencillo · le debo el vuelto</button>
+  <div class="debo oculto" id="cjDeboBox">
+    <label for="cjDeboNombre" style="margin-top:0">¿A quién le debo el vuelto?</label>
+    <input id="cjDeboNombre" list="nombres" autocomplete="off" placeholder="Nombre de la persona">
+    <label for="cjDado">¿Le das algo de vuelto ahora? (si tienes)</label>
+    <input id="cjDado" inputmode="decimal" placeholder="0 = no le doy nada ahora">
+    <small class="m">La caja le queda debiendo</small><b class="m" id="cjDebe">0.00</b>
+  </div>
   <div class="botones"><button class="efec" id="cjOk" style="color:#fff">✔ Cobrar</button><button class="sec" id="cjNo">Cancelar</button></div>
 </div></div>
 <div class="modal" id="mMixto"><div class="hoja">
@@ -307,7 +325,7 @@ function normalizar(d){
   if(!Array.isArray(d.cajeros))d.cajeros=[];
   if(d.cfg.papel==='ticket')d.cfg.papel='80';
   if(!('bluetooth'in navigator)&&d.cfg.impresion==='bluetooth')d.cfg.impresion='sistema';
-  d.menus=d.menus||[];d.ventas=d.ventas||[];return d;
+  d.menus=d.menus||[];d.ventas=d.ventas||[];d.vueltos=d.vueltos||[];return d;
 }
 function cargar(){
   try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.ventas)return normalizar(d)}catch(e){}
@@ -386,6 +404,9 @@ function pintarVender(){
   const nombres=[...new Set(db.ventas.map(v=>v.cliente).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   $('nombres').innerHTML=nombres.map(n=>`<option value="${esc(n)}">`).join('');
   pintarVentasHoy();
+  const pv=vueltosPend(),av=$('avisoDebo');av.classList.toggle('oculto',!pv.length);
+  if(pv.length){av.innerHTML=`<div class="fila" style="padding:0;border:0"><div class="izq"><div class="nom" style="color:#b45309">🙏 La caja debe vuelto a ${unicos(pv.map(x=>x.cliente)).length} persona(s)</div><div class="det">${esc(unicos(pv.map(x=>x.cliente)).join(', '))} · toca para ver</div></div><div class="monto" style="color:#b45309">${dinero(pv.reduce((s,x)=>s+x.monto,0))}</div></div>`;
+    av.onclick=()=>verVista('fiados')}
 }
 function totalCarrito(){return db.menus.reduce((s,m)=>s+(carrito[m.id]||0)*m.precio,0)}
 document.querySelectorAll('[data-pago]').forEach(b=>b.onclick=()=>vender(b.dataset.pago));
@@ -410,7 +431,8 @@ async function vender(metodo){
   if(metodo==='mixto'){partes=await pedirMixto(total,cliente);if(!partes)return}
   const v={id:uid(),num:db.cfg.numSig++,ts:Date.now(),fecha:hoy(),cliente,items,total,metodo,grupo:db.cfg.grupo,cajero:db.cfg.cajero,
     pagado:metodo!=='fiado',pagoMetodo:metodo==='fiado'?null:metodo,pagoFecha:metodo==='fiado'?null:hoy(),pagoTs:metodo==='fiado'?null:Date.now()};
-  if(caja){v.recibido=caja.recibido;v.vuelto=caja.vuelto}
+  if(caja){v.recibido=caja.recibido;v.vuelto=caja.vuelto;
+    if(caja.debo>0){v.cliente=v.cliente||caja.nombre;v.vueltoDado=caja.entregado;v.vueltoDebe=caja.debo;apuntarVuelto(v.cliente,caja.debo,v.num,v.id)}}
   if(partes)v.partes=partes;
   db.ventas.push(v);guardar();carrito={};$('cliente').value='';
   pintarVender();
@@ -449,19 +471,31 @@ function pedirEfectivo(total,nombre){
   return new Promise(res=>{
     const inp=$('cjRecibido'),ok=$('cjOk');
     $('cjTotal').textContent=dinero(total);$('cjNombre').textContent=nombre?('Cliente: '+nombre):'';
-    inp.value='';
+    inp.value='';let debo=false;
+    const bD=$('cjDebo'),box=$('cjDeboBox'),iN=$('cjDeboNombre'),iD=$('cjDado');
+    iN.value=nombre||'';iD.value='';box.classList.add('oculto');ok.textContent='✔ Cobrar';
     const calc=()=>{
       const r=inp.value.trim()===''?total:aCent(inp.value),vu=r-total;
       $('cjVuelto').textContent=vu>=0?dinero(vu):'Faltan '+dinero(-vu);
-      $('cjVueltoBox').classList.toggle('falta',vu<0);ok.disabled=vu<0;return {recibido:r,vuelto:vu};
+      $('cjVueltoBox').classList.toggle('falta',vu<0);
+      if(vu<=0&&debo){debo=false;box.classList.add('oculto');ok.textContent='✔ Cobrar'}
+      bD.classList.toggle('oculto',vu<=0||debo);
+      $('cjVueltoBox').querySelector('small').textContent=debo?'Vuelto total':'Vuelto a devolver';
+      const dado=debo?Math.min(Math.max(aCent(iD.value),0),vu):vu,deb=vu-dado;
+      $('cjDebe').textContent=dinero(Math.max(deb,0));
+      ok.disabled=vu<0||(debo&&(deb<=0||!iN.value.trim()));
+      return {recibido:r,vuelto:vu,entregado:dado,debo:debo?deb:0,nombre:iN.value.trim()};
     };
+    bD.onclick=()=>{debo=true;box.classList.remove('oculto');ok.textContent='✔ Cobrar y apuntar que le debo';calc();
+      setTimeout(()=>(iN.value?iD:iN).focus(),100)};
+    iN.oninput=iD.oninput=calc;
     const bs=$('cjBilletes');bs.innerHTML='';
     [['Exacto',total],...[10,20,50,100,200].filter(x=>x*100>=total).map(x=>[x+' '+db.cfg.moneda,x*100])].forEach(([t,val])=>{
       const b=document.createElement('button');b.className='sec';b.textContent=t;
       b.onclick=()=>{inp.value=(val/100).toFixed(2);calc()};bs.append(b)});
     inp.oninput=calc;calc();
     const fin=x=>{$('mCaja').classList.remove('ver');ok.onclick=$('cjNo').onclick=null;res(x)};
-    ok.onclick=()=>{const r=calc();if(r.vuelto>=0)fin(r)};
+    ok.onclick=()=>{const r=calc();if(!ok.disabled)fin(r)};
     $('cjNo').onclick=()=>fin(null);
     $('mCaja').classList.add('ver');setTimeout(()=>inp.focus(),150);
   });
@@ -484,8 +518,16 @@ function pedirMixto(total,nombre){
   });
 }
 /* Después de cobrar: muestra el vuelto y ofrece la boleta según Ajustes. */
+/* La caja se queda debiendo el vuelto a una persona */
+function apuntarVuelto(cliente,monto,num,ventaId){
+  db.vueltos.push({id:uid(),ventaId:ventaId||null,num,ts:Date.now(),fecha:hoy(),cliente,monto,grupo:db.cfg.grupo,cajero:db.cfg.cajero,
+    devuelto:false,devFecha:null,devTs:null,devGrupo:null,devCajero:null});
+}
+function vueltosPend(){return db.vueltos.filter(x=>!x.devuelto)}
 function despuesDeCobrar(doc,msg){
-  const vuelto=doc.vuelto>0?'💵 DAR VUELTO: '+dinero(doc.vuelto):'';
+  const vuelto=doc.vueltoDebe>0?'🙏 LE DEBES '+dinero(doc.vueltoDebe)+(doc.vueltoDado>0?' · dale ahora '+dinero(doc.vueltoDado):'')
+    :(doc.vuelto>0?'💵 DAR VUELTO: '+dinero(doc.vuelto):'');
+  if(doc.vueltoDebe>0)msg+=' · Apuntado: la caja le debe '+dinero(doc.vueltoDebe)+' de vuelto a '+(doc.cliente||'')+' (lo verás en 📝 Fiados).';
   if(db.cfg.boleta==='siempre'){aviso(vuelto||msg);imprimirBoleta(doc);return}
   if(db.cfg.boleta==='nunca'&&!vuelto){aviso(msg);return}
   const botones=db.cfg.boleta==='nunca'?[]:[{t:'🧾 Imprimir boleta',c:'tarj',f:()=>imprimirBoleta(doc)}];
@@ -500,19 +542,33 @@ function pintarVentasHoy(){
   vs.forEach(v=>{
     const estado=v.metodo==='fiado'?(v.pagado?'fiado → pagado':'fiado'):v.metodo+(v.parcial?' (parte)':'');
     const f=document.createElement('div');f.className='fila';
-    f.innerHTML=`<div class="izq"><div class="nom">${esc(v.cliente||'Sin nombre')}<span class="tag" style="background:${COLOR[v.metodo]}">${esc(estado)}</span></div>
+    f.innerHTML=`<div class="izq"><div class="nom">${esc(v.cliente||'Sin nombre')}<span class="tag" style="background:${COLOR[v.metodo]}">${esc(estado)}</span>${v.vueltoDebe>0?'<span class="tag" style="background:#d97706">le debo vuelto</span>':''}</div>
       <div class="det">${hora(v.ts)} · ${esc(detalle(v))}${v.grupo||v.cajero?'<br>👥 '+esc(nomGrupo(v.grupo))+(v.cajero?' · 👤 '+esc(v.cajero):''):''}</div></div><div class="monto">${dinero(v.total)}</div>`;
-    f.onclick=()=>preguntar(v.cliente||'Sin nombre',detalle(v)+' · '+dinero(v.total)+(v.vuelto>0?' · Recibido '+dinero(v.recibido)+', vuelto '+dinero(v.vuelto):''),[
+    f.onclick=()=>preguntar(v.cliente||'Sin nombre',detalle(v)+' · '+dinero(v.total)+(v.vuelto>0?' · Recibido '+dinero(v.recibido)+', vuelto '+dinero(v.vuelto):'')+(v.vueltoDebe>0?' · 🙏 le debemos '+dinero(v.vueltoDebe):''),[
       ...(v.metodo==='fiado'&&!v.pagado?[{t:'💰 Ya pagó lo que debe',c:'efec',f:()=>cobrar(db.ventas.filter(x=>x.cliente===v.cliente&&x.metodo==='fiado'&&!x.pagado),v.cliente)}]:[]),
       {t:'🧾 Imprimir boleta',c:'tarj',f:()=>imprimirBoleta(docVenta(v))},
-      {t:'🗑 Borrar esta venta (error)',c:'rojo',f:()=>{db.ventas=db.ventas.filter(x=>x.id!==v.id);guardar();pintarVender();aviso('Venta borrada')}}]);
+      {t:'🗑 Borrar esta venta (error)',c:'rojo',f:()=>{db.ventas=db.ventas.filter(x=>x.id!==v.id);db.vueltos=db.vueltos.filter(x=>x.ventaId!==v.id);guardar();pintarVender();aviso('Venta borrada')}}]);
     c.append(f);
   });
 }
 
 /* ---------- Fiados ---------- */
 function pendientes(){return db.ventas.filter(v=>v.metodo==='fiado'&&!v.pagado)}
+function pintarDebo(){
+  const pv=vueltosPend().sort((a,b)=>a.ts-b.ts),card=$('cardDebo');card.classList.toggle('oculto',!pv.length);
+  $('deboTotal').textContent=dinero(pv.reduce((s,x)=>s+x.monto,0));
+  const l=$('listaDebo');l.innerHTML='';
+  pv.forEach(x=>{const f=document.createElement('div');f.className='fila';
+    f.innerHTML=`<div class="izq"><div class="nom">${esc(x.cliente)}</div><div class="det">${fechaBonita(x.fecha)} ${hora(x.ts)} · boleta Nº ${x.num??'-'}${x.cajero?' · 👤 '+esc(x.cajero):''}</div></div>
+      <div class="row" style="flex:0 0 auto;align-items:center"><span class="monto" style="color:#b45309">${dinero(x.monto)}</span><button class="efec peq" style="color:#fff">Ya le devolví</button></div>`;
+    f.querySelector('button').onclick=()=>{if(!turnoOk())return;
+      preguntar('¿Ya le devolviste '+dinero(x.monto)+' a '+x.cliente+'?','Sale del efectivo de la caja de hoy.',[{t:'✔ Sí, ya le devolví',c:'efec',f:()=>{
+        x.devuelto=true;x.devFecha=hoy();x.devTs=Date.now();x.devGrupo=db.cfg.grupo;x.devCajero=db.cfg.cajero;guardar();pintarFiados();
+        aviso('✔ Vuelto devuelto a '+x.cliente)}}])};
+    l.append(f)});
+}
 function pintarFiados(){
+  pintarDebo();
   const filtro=$('buscarFiado').value.trim().toLowerCase();
   const pend=pendientes();
   $('deudaTotal').textContent=dinero(pend.reduce((s,v)=>s+v.total,0));
@@ -563,11 +619,14 @@ function cobrar(vs,nombre,abono){
   const tot=vs.reduce((s,v)=>s+v.total,0);
   const pagar=(m,caja,partes)=>{
     partes=partes||{efectivo:m==='efectivo'?tot:0,tarjeta:m==='tarjeta'?tot:0};
-    const pagado=partes.efectivo+partes.tarjeta,lineas=aplicarPago(vs,partes);guardar();pintarFiados();pintarVender();
+    const pagado=partes.efectivo+partes.tarjeta,lineas=aplicarPago(vs,partes);
+    const deb=caja&&caja.debo>0?caja.debo:0;guardar();pintarFiados();pintarVender();
     const metodo=partes.efectivo&&partes.tarjeta?'mixto':(partes.efectivo?'efectivo':'tarjeta');
     const debe=deudaDe(nombre);
     const doc={titulo:debe>0?'ABONO A FIADO':'PAGO DE FIADO',num:db.cfg.numSig++,ts:Date.now(),cliente:nombre,total:pagado,metodo,partes,
-      lineas,recibido:caja?caja.recibido:null,vuelto:caja?caja.vuelto:0,debe,grupo:db.cfg.grupo,cajero:db.cfg.cajero};
+      lineas,recibido:caja?caja.recibido:null,vuelto:caja?caja.vuelto:0,debe,grupo:db.cfg.grupo,cajero:db.cfg.cajero,
+      vueltoDebe:deb,vueltoDado:caja?caja.entregado:0};
+    if(deb>0)apuntarVuelto(nombre,deb,doc.num,null);
     guardar();despuesDeCobrar(doc,'✔ '+nombre+' pagó '+dinero(pagado)+' ('+etiqueta(metodo,partes)+')'+(debe>0?' · todavía debe '+dinero(debe):' · ya no debe nada'))};
   if(abono){pedirParcial(tot,nombre,'Abonar una parte de la deuda').then(p=>{if(p)pagar(null,null,p)});return}
   preguntar(nombre+' paga '+dinero(tot),'¿Cómo pagó?',[
@@ -598,7 +657,14 @@ function datosCierre(f,g=''){
   fiadosDia.filter(v=>!v.pagado).forEach(v=>pg(v.grupo||'').fiado+=v.total);
   const grupos=unicos([...ventasDia.map(v=>v.grupo),...cobrosFiado.map(v=>v.pagoGrupo)]);
   const cajeros=unicos([...ventasDia.map(v=>v.cajero),...cobrosFiado.map(v=>v.pagoCajero)]);
-  return {f,g,ventasDia,pagadasDia,fiadosDia,cobrosFiado,efec,tarj,cobrado:efec+tarj,
+  // Vueltos que la caja quedó debiendo (el dinero sigue en la caja hasta devolverlo)
+  const vNuevos=db.vueltos.filter(x=>x.fecha===f&&de(x,'grupo')).sort((a,b)=>a.ts-b.ts);
+  const vDevueltos=db.vueltos.filter(x=>x.devuelto&&x.devFecha===f&&de(x,'devGrupo')).sort((a,b)=>a.devTs-b.devTs);
+  const vDebeDia=vNuevos.reduce((s,x)=>s+x.monto,0),vDevDia=vDevueltos.reduce((s,x)=>s+x.monto,0);
+  const vPend=vueltosPend().filter(x=>de(x,'grupo'));
+  return {vNuevos,vDevueltos,vDebeDia,vDevDia,fisico:efec+vDebeDia-vDevDia,hayVueltos:vNuevos.length+vDevueltos.length+vPend.length>0,
+    vPendTotal:vPend.reduce((s,x)=>s+x.monto,0),vPend,
+    f,g,ventasDia,pagadasDia,fiadosDia,cobrosFiado,efec,tarj,cobrado:efec+tarj,
     fiadoDia:suma(fiadosDia),sigueDia:suma(fiadosDia,v=>!v.pagado),vendido:suma(ventasDia),platos,
     nPlatos:Object.values(platos).reduce((a,b)=>a+b,0),porGrupo:!g&&Object.keys(porGrupo).length>1?porGrupo:null,
     grupoTxt:g||(grupos.length?grupos.join(', '):(db.cfg.grupo||'—')),
@@ -630,6 +696,14 @@ function pintarCierre(){
     <div class="caja"><small>Platos vendidos</small><b>${d.nPlatos}</b></div>
   </div>
   <div class="det" style="margin-top:8px">${Object.entries(d.platos).map(([n,q])=>esc(n)+': '+q).join(' · ')||''}</div></div>
+  ${d.hayVueltos?`<div class="card debo" style="padding:14px"><h2 style="color:#b45309">🙏 Vuelto que la caja debe</h2>
+    <div class="fila"><div>💵 Efectivo de ventas</div><div class="monto">${dinero(d.efec)}</div></div>
+    <div class="fila"><div>＋ Vuelto que no se entregó hoy</div><div class="monto">${dinero(d.vDebeDia)}</div></div>
+    <div class="fila"><div>− Vuelto devuelto hoy</div><div class="monto">${dinero(d.vDevDia)}</div></div>
+    <div class="fila"><div class="nom">💵 Efectivo que debe haber en la caja</div><div class="monto" style="font-size:19px">${dinero(d.fisico)}</div></div>
+    ${d.vNuevos.map(x=>`<div class="fila"><div class="izq"><div class="nom">${esc(x.cliente)}${x.devuelto?'<span class="tag" style="background:var(--efec)">ya devuelto</span>':''}</div><div class="det">${hora(x.ts)} · boleta Nº ${x.num??'-'}${x.cajero?' · 👤 '+esc(x.cajero):''}</div></div><div class="monto">${dinero(x.monto)}</div></div>`).join('')}
+    ${d.vDevueltos.filter(x=>x.fecha!==d.f).map(x=>`<div class="fila"><div class="izq"><div class="nom">${esc(x.cliente)}<span class="tag" style="background:var(--efec)">devuelto hoy</span></div><div class="det">Le debíamos desde el ${fechaBonita(x.fecha)}</div></div><div class="monto">− ${dinero(x.monto)}</div></div>`).join('')}
+    <div class="fila"><div class="nom">Total que la caja todavía debe (todas las fechas)</div><div class="monto" style="color:#b45309">${dinero(d.vPendTotal)}</div></div></div>`:''}
   ${d.porGrupo?`<div class="card"><h2>👥 Por grupo</h2>${Object.entries(d.porGrupo).map(([g,x])=>`<div class="fila"><div class="izq"><div class="nom">${esc(nomGrupo(g))}</div><div class="det">💵 ${dinero(x.efec)} · 💳 ${dinero(x.tarj)}${x.fiado?' · 📝 debe '+dinero(x.fiado):''}</div></div><div class="monto">${dinero(x.efec+x.tarj)}</div></div>`).join('')}</div>`:''}
   <div class="card"><h2>✔ Pagaron (${d.pagadasDia.length})</h2>
     ${lista2(d.pagadasDia,v=>`<div class="fila"><div class="izq"><div class="nom">${esc(v.cliente||'Sin nombre')}<span class="tag" style="background:${COLOR[v.metodo]}">${METODO[v.metodo]}</span></div><div class="det">${v.metodo==='mixto'?etiqueta('mixto',v.partes)+' · ':''}${hora(v.ts)} · ${quien(v.grupo,v.cajero)}${esc(detalle(v))}</div></div><div class="monto">${dinero(v.total)}</div></div>`)}</div>
@@ -643,6 +717,9 @@ function textoCierre(d){
   const L=[],lin='--------------------------------';
   L.push(db.cfg.nombre.toUpperCase(),'CIERRE DE CAJA '+fechaBonita(d.f),'Grupo: '+d.grupoTxt,'Responsable de caja: '+d.cajeroTxt,lin);
   L.push('Efectivo:        '+dinero(d.efec),'Tarjeta:         '+dinero(d.tarj),'TOTAL COBRADO:   '+dinero(d.cobrado),'Sigue debiendo:  '+dinero(d.sigueDia),lin);
+  if(d.hayVueltos){L.push('VUELTO QUE LA CAJA DEBE:','+ No entregado hoy: '+dinero(d.vDebeDia),'- Devuelto hoy:     '+dinero(d.vDevDia),'EFECTIVO EN CAJA:  '+dinero(d.fisico));
+    d.vNuevos.forEach(x=>L.push('- Le debemos a '+x.cliente+': '+dinero(x.monto)+(x.devuelto?' (ya devuelto)':'')));
+    L.push('Total pendiente de devolver: '+dinero(d.vPendTotal),lin)}
   if(d.porGrupo){L.push('POR GRUPO:');Object.entries(d.porGrupo).forEach(([g,x])=>L.push('- '+nomGrupo(g)+': '+dinero(x.efec+x.tarj)+' (efectivo '+dinero(x.efec)+', tarjeta '+dinero(x.tarj)+')'));L.push(lin)}
   L.push('PAGARON:');d.pagadasDia.forEach(v=>L.push('- '+(v.cliente||'Sin nombre')+' · '+etiqueta(v.metodo,v.partes)+' · '+dinero(v.total)));if(!d.pagadasDia.length)L.push('  Ninguno');
   if(d.cobrosFiado.length){L.push('','FIADOS COBRADOS:');d.cobrosFiado.forEach(v=>L.push('- '+v.cliente+' · '+etiqueta(v.pagoMetodo,v.pagoPartes)+' · '+dinero(v.total)+' (del '+fechaBonita(v.fecha)+')'))}
@@ -660,6 +737,11 @@ function ticketHTML(d){
   <tr class="tot"><td>TOTAL COBRADO</td><td class="r">${dinero(d.cobrado)}</td></tr>
   <tr><td>Sigue debiendo (de hoy)</td><td class="r">${dinero(d.sigueDia)}</td></tr>
   ${Object.entries(d.platos).map(([n,q])=>`<tr><td>${esc(n)}</td><td class="r">${q}</td></tr>`).join('')}</table>
+  ${d.hayVueltos?`<h2>VUELTO QUE DEBEMOS</h2><table>
+  <tr><td>+ No entregado hoy</td><td class="r">${dinero(d.vDebeDia)}</td></tr><tr><td>- Devuelto hoy</td><td class="r">${dinero(d.vDevDia)}</td></tr>
+  <tr class="tot"><td>EFECTIVO EN CAJA</td><td class="r">${dinero(d.fisico)}</td></tr>
+  ${d.vNuevos.map(x=>`<tr><td>${esc(x.cliente)}${x.devuelto?' (devuelto)':''}</td><td class="r">${dinero(x.monto)}</td></tr>`).join('')}
+  <tr><td>Pendiente total</td><td class="r">${dinero(d.vPendTotal)}</td></tr></table>`:''}
   ${d.porGrupo?'<h2>POR GRUPO</h2>'+tabla(Object.entries(d.porGrupo),([g,x])=>`<tr><td>${esc(nomGrupo(g))}<br><small>Ef. ${dinero(x.efec)} · Tj. ${dinero(x.tarj)}</small></td><td class="r">${dinero(x.efec+x.tarj)}</td></tr>`):''}
   <h2>PAGARON (${d.pagadasDia.length})</h2>${tabla(d.pagadasDia,v=>`<tr><td>${esc(v.cliente||'Sin nombre')}<br><small>${etiqueta(v.metodo,v.partes)} · ${esc(detalle(v))}</small></td><td class="r">${dinero(v.total)}</td></tr>`)}
   ${d.cobrosFiado.length?`<h2>FIADOS COBRADOS (${d.cobrosFiado.length})</h2>`+tabla(d.cobrosFiado,v=>`<tr><td>${esc(v.cliente)}<br><small>${etiqueta(v.pagoMetodo,v.pagoPartes)} · fiado del ${fechaBonita(v.fecha)}</small></td><td class="r">${dinero(v.total)}</td></tr>`):''}
@@ -695,6 +777,10 @@ function cierreA4(d){
     <div><small>Platos vendidos</small><b>${d.nPlatos}</b></div>
     <div><small>Total vendido (con fiado)</small><b>${dinero(d.vendido)}</b></div>
     <div><small>Deuda acumulada${todos?'':' del grupo'}</small><b>${dinero(d.deudaTotal)}</b></div>
+    ${d.hayVueltos?`<div><small>+ Vuelto no entregado hoy</small><b>${dinero(d.vDebeDia)}</b></div>
+    <div><small>− Vuelto devuelto hoy</small><b>${dinero(d.vDevDia)}</b></div>
+    <div class="t"><small>💵 Efectivo en caja</small><b>${dinero(d.fisico)}</b></div>
+    <div><small>Vuelto pendiente (total)</small><b>${dinero(d.vPendTotal)}</b></div>`:''}
   </div>
   <div class="dos">
     <div><h2>Platos vendidos</h2>${tabla(['Menú','Cantidad·r'],Object.entries(d.platos),([n,q])=>`<tr>${td(esc(n))}${td(q,1)}</tr>`)}</div>
@@ -710,6 +796,9 @@ function cierreA4(d){
   ${tabla(['Fiado del','Nombre',...(todos?['Grupo']:[]),'Detalle','Pago','Cobró','Importe·r'],d.cobrosFiado,
     v=>`<tr>${td(fechaBonita(v.fecha))}${td(esc(v.cliente))}${todos?td(esc(nomGrupo(v.pagoGrupo))):''}${td(esc(detalle(v)))}${td(esc(etiqueta(v.pagoMetodo,v.pagoPartes)))}${td(esc(v.pagoCajero||'—'))}${td(dinero(v.total),1)}</tr>`,
     cols(todos?6:5)+td(dinero(sumaT(d.cobrosFiado)),1)+'</tr>')}`:''}
+  ${d.vNuevos.length||d.vDevueltos.length?`<h2>Vuelto que la caja quedó debiendo</h2>
+  ${tabla(['Hora','Nombre','Boleta','Atendió','Estado','Importe·r'],[...d.vNuevos,...d.vDevueltos.filter(x=>x.fecha!==d.f)],
+    x=>`<tr>${td(x.fecha===d.f?hora(x.ts):fechaBonita(x.fecha))}${td(esc(x.cliente))}${td('Nº '+(x.num??'-'))}${td(esc(x.cajero||'—'))}${td(x.devuelto?(x.devFecha===d.f?'Devuelto hoy':'Devuelto '+fechaBonita(x.devFecha)):'Pendiente')}${td(dinero(x.monto),1)}</tr>`)}`:''}
   <h2>Apuntados como fiado hoy (${d.fiadosDia.length})</h2>
   ${tabla(['Hora','Nombre',...(todos?['Grupo']:[]),'Detalle','Estado','Atendió','Importe·r'],d.fiadosDia,
     v=>`<tr>${td(hora(v.ts))}${td(esc(v.cliente))}${todos?td(esc(nomGrupo(v.grupo))):''}${td(esc(detalle(v)))}${td(v.pagado?'Ya pagó':'Debe')}${td(esc(v.cajero||'—'))}${td(dinero(v.total),1)}</tr>`,
@@ -729,7 +818,7 @@ $('btnImpA4').onclick=()=>imprimirSistema(cierreA4(cierreActual()),'a4');
 function docVenta(v){
   return {titulo:v.metodo==='fiado'&&!v.pagado?'BOLETA - FIADO':'BOLETA',num:v.num,ts:v.ts,cliente:v.cliente,
     lineas:v.items.map(i=>({cant:i.cant,nombre:i.nombre,precio:i.precio})),total:v.total,grupo:v.grupo,cajero:v.cajero,
-    metodo:v.metodo,partes:v.partes,pendiente:v.metodo==='fiado'&&!v.pagado,recibido:v.recibido,vuelto:v.vuelto||0};
+    metodo:v.metodo,partes:v.partes,pendiente:v.metodo==='fiado'&&!v.pagado,recibido:v.recibido,vuelto:v.vuelto||0,vueltoDebe:v.vueltoDebe||0,vueltoDado:v.vueltoDado||0};
 }
 function fechaHora(ts){const d=new Date(ts);return fechaBonita(fechaISO(d))+' '+hora(ts)}
 /* modo: 'p58' / 'p80' (ticket), 'a4b' (boleta en A4), 'a4' (cierre en A4) */
@@ -758,7 +847,9 @@ function boletaHTML(doc){
   ${doc.metodo==='mixto'&&doc.partes?`<tr><td>· Efectivo</td><td class="r">${dinero(doc.partes.efectivo)}</td></tr><tr><td>· Tarjeta</td><td class="r">${dinero(doc.partes.tarjeta)}</td></tr>`:''}
   ${doc.pagadoAhora?`<tr><td>Pagado ahora</td><td class="r">${dinero(doc.pagadoAhora)}</td></tr>`:''}
   ${doc.debe>0?`<tr class="tot"><td>QUEDA DEBIENDO</td><td class="r">${dinero(doc.debe)}</td></tr>`:''}
-  ${doc.recibido?`<tr><td>Recibido</td><td class="r">${dinero(doc.recibido)}</td></tr><tr><td>Vuelto</td><td class="r">${dinero(doc.vuelto)}</td></tr>`:''}</table>
+  ${doc.recibido?`<tr><td>Recibido</td><td class="r">${dinero(doc.recibido)}</td></tr><tr><td>Vuelto</td><td class="r">${dinero(doc.vuelto)}</td></tr>`:''}
+  ${doc.vueltoDebe>0?`<tr><td>Vuelto entregado</td><td class="r">${dinero(doc.vueltoDado||0)}</td></tr><tr class="tot"><td>LE DEBEMOS (vuelto)</td><td class="r">${dinero(doc.vueltoDebe)}</td></tr>`:''}</table>
+  ${doc.vueltoDebe>0?`<p class="c" style="border:1px dashed #000;padding:4px">Guarde esta boleta: la caja le debe ${dinero(doc.vueltoDebe)} de vuelto.</p>`:''}
   ${c.mensaje?`<p class="c">${esc(c.mensaje)}</p>`:''}`;
 }
 
@@ -818,6 +909,8 @@ async function escposBoleta(doc,papel){
   if(doc.pagadoAhora)e.ln(lr('Pagado ahora',dinero(doc.pagadoAhora),n));
   if(doc.debe>0)e.negrita(1).ln(lr('QUEDA DEBIENDO',dinero(doc.debe),n)).negrita(0);
   if(doc.recibido){e.ln(lr('Recibido',dinero(doc.recibido),n)).negrita(1).ln(lr('Vuelto',dinero(doc.vuelto),n)).negrita(0)}
+  if(doc.vueltoDebe>0){e.ln(lr('Vuelto entregado',dinero(doc.vueltoDado||0),n)).negrita(1).ln(lr('LE DEBEMOS',dinero(doc.vueltoDebe),n)).negrita(0);
+    e.ln();envolver('Guarde esta boleta: la caja le debe '+dinero(doc.vueltoDebe)+' de vuelto.',n).forEach(l=>e.ln(l))}
   if(db.cfg.mensaje){e.ln().centro();envolver(db.cfg.mensaje,n).forEach(l=>e.ln(l))}
   return e.fin().bytes();
 }
@@ -828,6 +921,8 @@ async function escposCierre(d,papel){
   e.ln(lr('Efectivo',dinero(d.efec),n)).ln(lr('Tarjeta',dinero(d.tarj),n));
   e.negrita(1).ln(lr('TOTAL COBRADO',dinero(d.cobrado),n)).negrita(0).ln(lr('Sigue debiendo (hoy)',dinero(d.sigueDia),n));
   Object.entries(d.platos).forEach(([p,q])=>e.ln(lr(p,String(q),n)));
+  if(d.hayVueltos){e.linea(n).negrita(1).ln('VUELTO QUE DEBEMOS').negrita(0).ln(lr('+ No entregado hoy',dinero(d.vDebeDia),n)).ln(lr('- Devuelto hoy',dinero(d.vDevDia),n))
+    .negrita(1).ln(lr('EFECTIVO EN CAJA',dinero(d.fisico),n)).negrita(0);d.vNuevos.forEach(x=>e.ln(lr(x.cliente+(x.devuelto?' (dev.)':''),dinero(x.monto),n)));e.ln(lr('Pendiente total',dinero(d.vPendTotal),n))}
   if(d.porGrupo){e.linea(n).negrita(1).ln('POR GRUPO').negrita(0);Object.entries(d.porGrupo).forEach(([g,x])=>e.ln(lr(nomGrupo(g),dinero(x.efec+x.tarj),n)).ln('  Ef. '+dinero(x.efec)+' / Tj. '+dinero(x.tarj)))}
   const sec=(t,arr,fn)=>{e.linea(n).negrita(1).ln(t+' ('+arr.length+')').negrita(0);if(!arr.length)e.ln('Ninguno');arr.forEach(v=>{const [a,b]=fn(v);e.ln(lr(a,dinero(v.total),n));if(b)e.ln('  '+ascii(b).slice(0,n-2))})};
   sec('PAGARON',d.pagadasDia,v=>[v.cliente||'Sin nombre',etiqueta(v.metodo,v.partes)+' - '+detalle(v)]);

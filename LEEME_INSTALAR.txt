@@ -135,3 +135,15 @@ IMPRIMIR EL CIERRE (nuevo en v1.4)
   si allí pusiste A4, usa 80 mm).
 - «📄 Impresora A4»: hoja completa con recuadros y tablas a todo el ancho
   (hora, nombre, grupo, detalle, forma de pago, quién atendió) y firmas.
+
+NO TENGO SENCILLO: LA CAJA LE DEBE EL VUELTO (nuevo en v1.5)
+------------------------------------------------------------
+- Al cobrar en efectivo, si paga con un billete grande (ej. 100 por un
+  plato de 12), pulsa «🙏 No tengo sencillo · le debo el vuelto».
+- Escribe a quién se le debe y, si tienes algo de cambio, cuánto le das
+  ahora. La app apunta lo que falta.
+- La boleta dice «LE DEBEMOS (vuelto)» para que la persona la guarde.
+- En «Vender» sale un aviso naranja y en «📝 Fiados» la lista de personas a
+  quienes la caja debe vuelto. Cuando le devuelvas, pulsa «Ya le devolví».
+- El cierre muestra el «Efectivo que debe haber en la caja» (contando el
+  vuelto que todavía no se entregó y el que se devolvió ese día).
