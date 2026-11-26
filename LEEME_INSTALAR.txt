@@ -18,7 +18,8 @@ Se usa GitHub Pages (gratis). Ya tienes cuenta de GitHub.
 1. Entra en https://github.com y pulsa "New" (nuevo repositorio).
 2. Nombre: caja-mmm  · Marca "Public" · pulsa "Create repository".
 3. Pulsa "uploading an existing file" y arrastra TODOS los archivos de esta
-   carpeta (index.html, sw.js, manifest.json, icon.svg, icon-180.png, icon-512.png).
+   carpeta (index.html, sw.js, manifest.json, instalar.js, icon.svg,
+   icon-180.png, icon-192.png, icon-512.png, icon-maskable-512.png).
    Pulsa "Commit changes".
 4. Ve a Settings > Pages. En "Branch" elige "main" y "/(root)". Pulsa Save.
 5. Espera 1-2 minutos. Tu app quedará en:
@@ -147,3 +148,16 @@ NO TENGO SENCILLO: LA CAJA LE DEBE EL VUELTO (nuevo en v1.5)
   quienes la caja debe vuelto. Cuando le devuelvas, pulsa «Ya le devolví».
 - El cierre muestra el «Efectivo que debe haber en la caja» (contando el
   vuelto que todavía no se entregó y el que se devolvió ese día).
+
+INSTALAR COMO APP (PWA) EN TELÉFONOS Y TABLETS (nuevo)
+------------------------------------------------------
+- Al abrir la dirección en el navegador sale un aviso abajo:
+  · Android (teléfono o tablet): botón «Instalar».
+  · iPhone / iPad: indica tocar Compartir → «Añadir a pantalla de inicio»
+    (tiene que ser en Safari; si se abrió desde WhatsApp, pasarla a Safari).
+- La app abre al instante sin internet. Cuando hay internet, descarga sola
+  la versión nueva en segundo plano y se ve la próxima vez que se abra.
+- Al subir una versión nueva a GitHub, cambia en sw.js la línea
+  const CACHE = '...'  (por ejemplo a 'caja-mmm-v1-6').
+- Cada teléfono/tablet guarda SUS PROPIAS ventas. Usa uno solo para cobrar,
+  o pasa los datos con «Guardar copia» / «Restaurar copia».
