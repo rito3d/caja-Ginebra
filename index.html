@@ -141,6 +141,8 @@ button:disabled{opacity:.45}
   <div class="card">
     <h2>Menús de hoy</h2>
     <div id="listaMenus"></div>
+    <div id="listaExtras"></div>
+    <button class="sec" id="btnOtro" style="width:100%;margin-top:8px;padding:13px">＋ Otro precio / porción suelta</button>
     <label for="cliente">Nombre de la persona</label>
     <input id="cliente" list="nombres" autocomplete="off" placeholder="Ej.: Hna. María">
     <datalist id="nombres"></datalist>
@@ -251,7 +253,7 @@ button:disabled{opacity:.45}
     </div>
     <input type="file" id="fileImport" accept=".json,application/json" class="oculto">
   </div>
-  <p class="det" style="text-align:center">Caja MMM Ginebra · v1.5 · funciona sin internet</p>
+  <p class="det" style="text-align:center">Caja MMM Ginebra · v1.6 · funciona sin internet</p>
 </section>
 </main>
 
@@ -299,6 +301,21 @@ button:disabled{opacity:.45}
   <div class="vueltoBox" style="background:#fff3ea;border-color:var(--fiado);margin-top:12px"><small style="color:var(--fiado)">📝 Queda debiendo</small><b id="pcResto" style="color:var(--fiado)">—</b></div>
   <div class="botones"><button class="mixto" id="pcOk">✔ Guardar</button><button class="sec" id="pcNo">Cancelar</button></div>
 </div></div>
+<div class="modal" id="mOtro"><div class="hoja">
+  <h3>＋ Otro precio / porción suelta</h3>
+  <p>Para vender un plato a otro precio (ej. un Juane a 10) o algo suelto (ej. una porción de arroz).</p>
+  <label>Toca uno o escribe abajo</label>
+  <div class="billetes" id="otChips" style="margin-top:0"></div>
+  <label for="otNombre">¿Qué se vende?</label>
+  <input id="otNombre" autocomplete="off" placeholder="Ej.: Porción de arroz">
+  <div class="row">
+    <div><label for="otPrecio">Precio de cada uno</label><input id="otPrecio" inputmode="decimal" placeholder="Ej.: 5" style="font-size:20px;font-weight:800"></div>
+    <div><label>Cantidad</label><div class="qty"><button type="button" id="otMenos" aria-label="Quitar">−</button><span id="otCant">1</span><button type="button" id="otMas" aria-label="Añadir">＋</button></div></div>
+  </div>
+  <label style="display:flex;gap:8px;align-items:center;font-size:15px;color:var(--txt)"><input type="checkbox" id="otPlato" style="width:22px;height:22px;flex:0 0 auto"> Es un plato (cuenta en «Platos vendidos»)</label>
+  <div class="total"><span>Suma</span><span id="otTotal">—</span></div>
+  <div class="botones"><button class="efec" id="otOk" style="color:#fff">✔ Añadir a la venta</button><button class="sec" id="otNo">Cancelar</button></div>
+</div></div>
 <div class="toast" id="toast"></div>
 <div id="ticket"></div>
 <style id="estiloPagina"></style>
@@ -326,6 +343,7 @@ function normalizar(d){
   if(!Array.isArray(d.cajeros))d.cajeros=[];
   if(d.cfg.papel==='ticket')d.cfg.papel='80';
   if(!('bluetooth'in navigator)&&d.cfg.impresion==='bluetooth')d.cfg.impresion='sistema';
+  if(!Array.isArray(d.otros))d.otros=[{nombre:'Porción de arroz',precio:500}];
   d.menus=d.menus||[];d.ventas=d.ventas||[];d.vueltos=d.vueltos||[];return d;
 }
 function cargar(){
@@ -344,7 +362,7 @@ function hora(ts){const d=new Date(ts);return String(d.getHours()).padStart(2,'0
 function dinero(c){return (c/100).toFixed(2)+' '+db.cfg.moneda}
 function aCent(v){const n=parseFloat(String(v).replace(',','.'));return isFinite(n)?Math.round(n*100):0}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function detalle(v){return v.items.map(i=>i.cant+'× '+i.nombre).join(', ')}
+function detalle(v){return v.items.map(i=>i.cant+'× '+i.nombre+(i.especial?' a '+(i.precio/100).toFixed(2):'')).join(', ')}
 function nomGrupo(g){return g||'Sin grupo'}
 function unicos(a){return [...new Set(a.filter(Boolean))]}
 
@@ -387,7 +405,7 @@ function verVista(v){
 function cabecera(){$('hNombre').textContent=db.cfg.nombre;$('hFecha').textContent=new Date().toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'})}
 
 /* ---------- Vender ---------- */
-let carrito={};
+let carrito={},extras=[];
 function pintarVender(){
   cabecera();pintarTurno();
   const l=$('listaMenus');l.innerHTML='';
@@ -401,6 +419,13 @@ function pintarVender(){
     mas.onclick=()=>{carrito[m.id]=(carrito[m.id]||0)+1;pintarVender()};
     l.append(r);
   });
+  const le=$('listaExtras');le.innerHTML='';
+  extras.forEach((x,k)=>{const r=document.createElement('div');r.className='menu';
+    r.innerHTML=`<div><div class="n">${esc(x.nombre)} <span class="tag" style="background:#7c3aed">${x.plato?'precio especial':'suelto'}</span></div><div class="p">${dinero(x.precio)} c/u</div></div>
+      <div class="qty"><button aria-label="Quitar">−</button><span>${x.cant}</span><button aria-label="Añadir">＋</button></div>`;
+    const [menos,mas]=r.querySelectorAll('button');
+    menos.onclick=()=>{x.cant--;if(x.cant<=0)extras.splice(k,1);pintarVender()};
+    mas.onclick=()=>{x.cant++;pintarVender()};le.append(r)});
   $('totalVenta').textContent=dinero(totalCarrito());
   const nombres=[...new Set(db.ventas.map(v=>v.cliente).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
   $('nombres').innerHTML=nombres.map(n=>`<option value="${esc(n)}">`).join('');
@@ -409,11 +434,33 @@ function pintarVender(){
   if(pv.length){av.innerHTML=`<div class="fila" style="padding:0;border:0"><div class="izq"><div class="nom" style="color:#b45309">🙏 La caja debe vuelto a ${unicos(pv.map(x=>x.cliente)).length} persona(s)</div><div class="det">${esc(unicos(pv.map(x=>x.cliente)).join(', '))} · toca para ver</div></div><div class="monto" style="color:#b45309">${dinero(pv.reduce((s,x)=>s+x.monto,0))}</div></div>`;
     av.onclick=()=>verVista('fiados')}
 }
-function totalCarrito(){return db.menus.reduce((s,m)=>s+(carrito[m.id]||0)*m.precio,0)}
+function totalCarrito(){return db.menus.reduce((s,m)=>s+(carrito[m.id]||0)*m.precio,0)+extras.reduce((s,x)=>s+x.cant*x.precio,0)}
+/* Otro precio / porción suelta: se añade a la venta actual */
+$('btnOtro').onclick=()=>{
+  const iN=$('otNombre'),iP=$('otPrecio'),iC=$('otPlato');let cant=1;
+  iN.value='';iP.value='';iC.checked=false;
+  const calc=()=>{$('otCant').textContent=cant;const p=aCent(iP.value);$('otTotal').textContent=p>0?dinero(p*cant):'—';$('otOk').disabled=!(p>0&&iN.value.trim());return p};
+  const chips=[...db.menus.map(m=>({nombre:m.nombre,precio:null,plato:true})),...db.otros.map(o=>({...o,plato:false}))];
+  const bs=$('otChips');bs.innerHTML='';
+  chips.forEach(c=>{const b=document.createElement('button');b.type='button';b.className='sec';b.style.fontSize='14px';
+    b.textContent=c.nombre+(c.precio?' · '+(c.precio/100).toFixed(2):'');
+    b.onclick=()=>{iN.value=c.nombre;iC.checked=c.plato;if(c.precio)iP.value=(c.precio/100).toFixed(2);else{iP.value='';setTimeout(()=>iP.focus(),50)}calc()};bs.append(b)});
+  iN.oninput=iP.oninput=calc;
+  $('otMenos').onclick=()=>{cant=Math.max(1,cant-1);calc()};$('otMas').onclick=()=>{cant++;calc()};
+  const cerrar=()=>$('mOtro').classList.remove('ver');
+  $('otNo').onclick=cerrar;
+  $('otOk').onclick=()=>{const p=calc(),n=iN.value.trim();if(!(p>0&&n))return;
+    const plato=iC.checked,ex=extras.find(x=>x.nombre===n&&x.precio===p&&x.plato===plato);
+    if(ex)ex.cant+=cant;else extras.push({nombre:n,precio:p,cant,plato});
+    if(!plato&&!db.menus.some(m=>m.nombre===n)){db.otros=[{nombre:n,precio:p},...db.otros.filter(o=>o.nombre.toLowerCase()!==n.toLowerCase())].slice(0,6);guardar()}
+    cerrar();pintarVender();aviso('Añadido: '+cant+'× '+n+' a '+dinero(p))};
+  calc();$('mOtro').classList.add('ver');setTimeout(()=>iN.focus(),150);
+};
 document.querySelectorAll('[data-pago]').forEach(b=>b.onclick=()=>vender(b.dataset.pago));
 async function vender(metodo){
-  const items=db.menus.filter(m=>carrito[m.id]>0).map(m=>({nombre:m.nombre,precio:m.precio,cant:carrito[m.id]}));
-  if(!items.length)return aviso('Elige al menos un menú con ＋');
+  const items=[...db.menus.filter(m=>carrito[m.id]>0).map(m=>({nombre:m.nombre,precio:m.precio,cant:carrito[m.id]})),
+    ...extras.map(x=>({nombre:x.nombre,precio:x.precio,cant:x.cant,especial:true,...(x.plato?{}:{noPlato:true})}))];
+  if(!items.length)return aviso('Elige al menos un menú con ＋ o añade otro precio');
   if(!turnoOk())return;
   const cliente=$('cliente').value.trim();
   if(metodo==='fiado'&&!cliente){$('cliente').focus();return aviso('Para fiado escribe el nombre de la persona')}
@@ -435,7 +482,7 @@ async function vender(metodo){
   if(caja){v.recibido=caja.recibido;v.vuelto=caja.vuelto;
     if(caja.debo>0){v.cliente=v.cliente||caja.nombre;v.vueltoDado=caja.entregado;v.vueltoDebe=caja.debo;apuntarVuelto(v.cliente,caja.debo,v.num,v.id)}}
   if(partes)v.partes=partes;
-  db.ventas.push(v);guardar();carrito={};$('cliente').value='';
+  db.ventas.push(v);guardar();carrito={};extras=[];$('cliente').value='';
   pintarVender();
   despuesDeCobrar(docVenta(v),(metodo==='fiado'?'📝 Apuntado como fiado: ':'✔ Cobrado: ')+dinero(total));
 }
@@ -448,7 +495,7 @@ function venderParcial(items,total,cliente,pp){
     pagado:true,pagoMetodo:m,pagoFecha:hoy(),pagoTs:ts};
   const f={id:uid(),num:v.num,ts:ts+1,fecha:hoy(),cliente,items:[{nombre:'Resto de la boleta Nº '+v.num,precio:resto,cant:1}],
     total:resto,metodo:'fiado',grupo:g,cajero:cj,sinPlatos:true,pagado:false,pagoMetodo:null,pagoFecha:null,pagoTs:null};
-  db.ventas.push(v,f);guardar();carrito={};$('cliente').value='';pintarVender();
+  db.ventas.push(v,f);guardar();carrito={};extras=[];$('cliente').value='';pintarVender();
   const doc=docVenta(v);doc.total=total;doc.pagadoAhora=pagado;doc.debe=resto;doc.partes=pp;doc.metodo='mixto';
   despuesDeCobrar(doc,'✔ Pagó '+dinero(pagado)+' · 📝 queda debiendo '+dinero(resto));
 }
@@ -667,7 +714,7 @@ function datosCierre(f,g=''){
     vPendTotal:vPend.reduce((s,x)=>s+x.monto,0),vPend,
     f,g,ventasDia,pagadasDia,fiadosDia,cobrosFiado,efec,tarj,cobrado:efec+tarj,
     fiadoDia:suma(fiadosDia),sigueDia:suma(fiadosDia,v=>!v.pagado),vendido:suma(ventasDia),platos,
-    nPlatos:Object.values(platos).reduce((a,b)=>a+b,0),porGrupo:!g&&Object.keys(porGrupo).length>1?porGrupo:null,
+    nPlatos:ventasDia.filter(v=>!v.sinPlatos).reduce((s,v)=>s+v.items.filter(i=>!i.noPlato).reduce((t,i)=>t+i.cant,0),0),porGrupo:!g&&Object.keys(porGrupo).length>1?porGrupo:null,
     grupoTxt:g||(grupos.length?grupos.join(', '):(db.cfg.grupo||'—')),
     cajeroTxt:cajeros.length?cajeros.join(', '):(db.cfg.cajero||'—'),
     deudaTotal:pendientes().filter(v=>de(v,'grupo')).reduce((s,v)=>s+v.total,0)};
