@@ -149,6 +149,17 @@ NO TENGO SENCILLO: LA CAJA LE DEBE EL VUELTO (nuevo en v1.5)
 - El cierre muestra el «Efectivo que debe haber en la caja» (contando el
   vuelto que todavía no se entregó y el que se devolvió ese día).
 
+REINICIAR CAJA (nuevo en v1.8)
+------------------------------
+- Botón «🔄 Reiniciar caja» al final de «🧾 Cierre» y de «⚙️ Ajustes».
+- Tres opciones:
+  · 🆕 Nueva caja: limpia grupo, responsable, la venta en curso y los
+    acompañamientos de hoy. Las ventas y los fiados SE GUARDAN.
+  · 🧪 Borrar ventas de prueba: borra ventas, fiados y vueltos; la boleta
+    vuelve al N.º 1. Menús, grupos, logo y datos de la boleta se quedan.
+  · 🏭 Todo de fábrica: deja la app como recién instalada.
+- Las dos últimas piden confirmar dos veces y ofrecen «Guardar copia» antes.
+
 INSTALAR COMO APP (PWA) EN TELÉFONOS Y TABLETS (nuevo)
 ------------------------------------------------------
 - Al abrir la dirección en el navegador sale un aviso abajo:

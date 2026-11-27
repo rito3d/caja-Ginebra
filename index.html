@@ -59,7 +59,8 @@ h2{font-size:17px;margin:0 0 10px}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-end;justify-content:center;z-index:30}
 .modal.ver{display:flex}
 .modal .hoja{max-height:94vh;overflow-y:auto;background:#fff;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom));width:100%;max-width:700px}
-.modal h3{margin:0 0 6px}.modal p{margin:0 0 14px;color:var(--gris)}
+.modal h3{margin:0 0 6px}.modal p{margin:0 0 14px;color:var(--gris);white-space:pre-line}
+.modal .botones button.efec{color:#fff}
 .modal .botones{display:grid;gap:8px}.modal .botones button{padding:15px}
 label{display:block;font-size:13px;color:var(--gris);font-weight:650;margin:10px 0 5px}
 .oculto{display:none!important}
@@ -196,6 +197,11 @@ button:disabled{opacity:.45}
     </div>
     <button class="sec" id="btnCompartir" style="padding:15px;width:100%;margin-top:8px">📤 Compartir por WhatsApp / notas</button>
   </div>
+  <div class="card">
+    <h2>🔄 Terminar y empezar de nuevo</h2>
+    <p class="det" style="margin-top:0">Cuando ya imprimiste o compartiste el cierre: deja la caja lista para el próximo grupo o menú.</p>
+    <button class="rojo btnReiniciar" style="width:100%;padding:15px">🔄 Reiniciar caja</button>
+  </div>
 </section>
 
 <!-- AJUSTES -->
@@ -256,7 +262,12 @@ button:disabled{opacity:.45}
     </div>
     <input type="file" id="fileImport" accept=".json,application/json" class="oculto">
   </div>
-  <p class="det" style="text-align:center">Caja MMM Ginebra · v1.7 · funciona sin internet</p>
+  <div class="card">
+    <h2>🔄 Reiniciar</h2>
+    <p class="det" style="margin-top:0">Para empezar una caja nueva (otro grupo, otro menú) o borrar lo que hiciste probando la app.</p>
+    <button class="rojo btnReiniciar" style="width:100%;padding:15px">🔄 Reiniciar caja</button>
+  </div>
+  <p class="det" style="text-align:center">Caja MMM Ginebra · v1.8 · funciona sin internet</p>
 </section>
 </main>
 
@@ -1134,6 +1145,39 @@ $('fileImport').onchange=async e=>{
       {t:'Restaurar',c:'rojo',f:()=>{db=normalizar(d);guardar();aviso('Copia restaurada');verVista('vender')}}]);
   }catch(_){aviso('Ese archivo no es una copia válida')}
 };
+
+/* ---------- Reiniciar ---------- */
+/* 3 niveles: nueva caja (conserva ventas), borrar ventas de prueba (conserva ajustes), todo de fábrica. */
+function limpiarTurno(){
+  db.cfg.grupo='';db.cfg.cajero='';db.acomp={fecha:hoy(),lista:[]};
+  carrito={};carritoA={};extras=[];$('cliente').value='';
+}
+function trasReiniciar(msg,irAjustes){
+  guardar();aviso(msg);verVista(irAjustes?'ajustes':'vender');
+  if(!irAjustes)setTimeout(()=>$('tGrupo').focus(),120);
+}
+function confirmarBorrado(titulo,texto,boton,hacer){
+  preguntar(titulo,texto+'\n\nConsejo: antes pulsa «Guardar copia» si quieres conservar algo. Esto no se puede deshacer.',[
+    {t:'⬇ Guardar copia primero',c:'sec',f:()=>$('btnExport').click()},
+    {t:boton,c:'rojo',f:()=>preguntar('¿Seguro?','Última confirmación: '+boton.replace(/^\S+\s/,'').toLowerCase()+'.',[{t:'Sí, '+boton.replace(/^\S+\s/,'').toLowerCase(),c:'rojo',f:hacer}],'No')}
+  ]);
+}
+function reiniciarCaja(){
+  const nv=db.ventas.length,nf=pendientes().length,nd=vueltosPend().length;
+  const extra=(nf?' · '+nf+' fiado(s) pendientes':'')+(nd?' · '+nd+' vuelto(s) que la caja debe':'');
+  preguntar('🔄 Reiniciar caja','¿Qué quieres hacer?\n\n'+
+    '🆕 Nueva caja: borra el grupo, el responsable, lo que está en la venta y los acompañamientos de hoy. Las ventas y fiados SE GUARDAN.\n\n'+
+    '🧪 Borrar ventas de prueba: borra todas las ventas, fiados y vueltos ('+nv+' venta(s)'+extra+'). Los menús, grupos, logo y datos de la boleta se quedan. La boleta vuelve al N.º 1.\n\n'+
+    '🏭 Todo de fábrica: borra todo, también menús, grupos, responsables y logo.',[
+    {t:'🆕 Nueva caja',c:'efec',f:()=>{limpiarTurno();trasReiniciar('✔ Caja nueva. Elige el grupo y el responsable.')}},
+    {t:'🧪 Borrar ventas de prueba',c:'rojo',f:()=>confirmarBorrado('🧪 Borrar ventas de prueba','Se borrarán '+nv+' venta(s)'+extra+'.','🗑 Borrar ventas',()=>{
+      db.ventas=[];db.vueltos=[];db.cfg.numSig=1;limpiarTurno();trasReiniciar('✔ Ventas borradas. Boleta N.º 1.')})},
+    {t:'🏭 Todo de fábrica',c:'rojo',f:()=>confirmarBorrado('🏭 Todo de fábrica','Se borrará TODO: ventas, fiados, menús, grupos, responsables, logo y datos de la boleta.','🗑 Borrar todo',()=>{
+      try{localStorage.removeItem(KEY)}catch(e){}db=cargar();carrito={};carritoA={};extras=[];$('cliente').value='';
+      trasReiniciar('✔ App como nueva. Pon tus menús y grupos.',true)})}
+  ]);
+}
+document.querySelectorAll('.btnReiniciar').forEach(b=>b.onclick=reiniciarCaja);
 
 /* ---------- Inicio ---------- */
 pintarVender();
