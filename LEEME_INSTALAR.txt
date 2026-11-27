@@ -153,12 +153,15 @@ REINICIAR CAJA (nuevo en v1.8)
 ------------------------------
 - Botón «🔄 Reiniciar caja» al final de «🧾 Cierre» y de «⚙️ Ajustes».
 - Tres opciones:
-  · 🆕 Nueva caja: limpia grupo, responsable, la venta en curso y los
-    acompañamientos de hoy. Las ventas y los fiados SE GUARDAN.
+  · 🆕 Nueva caja (cambiado en v1.9): borra los platos (menús), las ventas,
+    los fiados y vueltos, el grupo, el responsable y los acompañamientos
+    de hoy; la boleta vuelve al N.º 1. Se quedan la lista de grupos,
+    responsables, logo y datos de la boleta. Luego abre Ajustes para
+    poner los platos del día.
   · 🧪 Borrar ventas de prueba: borra ventas, fiados y vueltos; la boleta
     vuelve al N.º 1. Menús, grupos, logo y datos de la boleta se quedan.
   · 🏭 Todo de fábrica: deja la app como recién instalada.
-- Las dos últimas piden confirmar dos veces y ofrecen «Guardar copia» antes.
+- Las tres piden confirmar dos veces y ofrecen «Guardar copia» antes.
 
 INSTALAR COMO APP (PWA) EN TELÉFONOS Y TABLETS (nuevo)
 ------------------------------------------------------
