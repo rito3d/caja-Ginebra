@@ -142,7 +142,10 @@ button:disabled{opacity:.45}
     <h2>Menús de hoy</h2>
     <div id="listaMenus"></div>
     <div id="listaExtras"></div>
-    <button class="sec" id="btnOtro" style="width:100%;margin-top:8px;padding:13px">＋ Otro precio / porción suelta</button>
+    <h2 style="margin-top:16px">🍟 Acompañamientos de hoy</h2>
+    <div id="listaAcomp"></div>
+    <button class="sec" id="btnAcomp" style="width:100%;margin-top:8px;padding:13px">＋ Agregar acompañamiento</button>
+    <button class="sec" id="btnOtro" style="width:100%;margin-top:8px;padding:13px">＋ Plato a otro precio</button>
     <label for="cliente">Nombre de la persona</label>
     <input id="cliente" list="nombres" autocomplete="off" placeholder="Ej.: Hna. María">
     <datalist id="nombres"></datalist>
@@ -253,7 +256,7 @@ button:disabled{opacity:.45}
     </div>
     <input type="file" id="fileImport" accept=".json,application/json" class="oculto">
   </div>
-  <p class="det" style="text-align:center">Caja MMM Ginebra · v1.6 · funciona sin internet</p>
+  <p class="det" style="text-align:center">Caja MMM Ginebra · v1.7 · funciona sin internet</p>
 </section>
 </main>
 
@@ -302,12 +305,12 @@ button:disabled{opacity:.45}
   <div class="botones"><button class="mixto" id="pcOk">✔ Guardar</button><button class="sec" id="pcNo">Cancelar</button></div>
 </div></div>
 <div class="modal" id="mOtro"><div class="hoja">
-  <h3>＋ Otro precio / porción suelta</h3>
-  <p>Para vender un plato a otro precio (ej. un Juane a 10) o algo suelto (ej. una porción de arroz).</p>
+  <h3>＋ Plato a otro precio</h3>
+  <p>Para vender un plato a un precio distinto (ej. un Juane a 10 en vez de 20).</p>
   <label>Toca uno o escribe abajo</label>
   <div class="billetes" id="otChips" style="margin-top:0"></div>
   <label for="otNombre">¿Qué se vende?</label>
-  <input id="otNombre" autocomplete="off" placeholder="Ej.: Porción de arroz">
+  <input id="otNombre" autocomplete="off" placeholder="Ej.: Juane">
   <div class="row">
     <div><label for="otPrecio">Precio de cada uno</label><input id="otPrecio" inputmode="decimal" placeholder="Ej.: 5" style="font-size:20px;font-weight:800"></div>
     <div><label>Cantidad</label><div class="qty"><button type="button" id="otMenos" aria-label="Quitar">−</button><span id="otCant">1</span><button type="button" id="otMas" aria-label="Añadir">＋</button></div></div>
@@ -315,6 +318,15 @@ button:disabled{opacity:.45}
   <label style="display:flex;gap:8px;align-items:center;font-size:15px;color:var(--txt)"><input type="checkbox" id="otPlato" style="width:22px;height:22px;flex:0 0 auto"> Es un plato (cuenta en «Platos vendidos»)</label>
   <div class="total"><span>Suma</span><span id="otTotal">—</span></div>
   <div class="botones"><button class="efec" id="otOk" style="color:#fff">✔ Añadir a la venta</button><button class="sec" id="otNo">Cancelar</button></div>
+</div></div>
+<div class="modal" id="mAcomp"><div class="hoja">
+  <h3 id="acTit">🍟 Acompañamiento de hoy</h3>
+  <p>Queda en la pantalla de Vender todo el día. Mañana empieza vacío.</p>
+  <label for="acNombre">Nombre</label>
+  <input id="acNombre" autocomplete="off" placeholder="Ej.: Porción de chifles">
+  <label for="acPrecio">Precio</label>
+  <input id="acPrecio" inputmode="decimal" placeholder="Ej.: 5" style="font-size:20px;font-weight:800">
+  <div class="botones" style="margin-top:14px"><button class="efec" id="acOk" style="color:#fff">✔ Guardar</button><button class="rojo" id="acBorrar">🗑 Quitar de hoy</button><button class="sec" id="acNo">Cancelar</button></div>
 </div></div>
 <div class="toast" id="toast"></div>
 <div id="ticket"></div>
@@ -343,7 +355,7 @@ function normalizar(d){
   if(!Array.isArray(d.cajeros))d.cajeros=[];
   if(d.cfg.papel==='ticket')d.cfg.papel='80';
   if(!('bluetooth'in navigator)&&d.cfg.impresion==='bluetooth')d.cfg.impresion='sistema';
-  if(!Array.isArray(d.otros))d.otros=[{nombre:'Porción de arroz',precio:500}];
+  delete d.otros;if(!d.acomp||!Array.isArray(d.acomp.lista))d.acomp={fecha:'',lista:[]};
   d.menus=d.menus||[];d.ventas=d.ventas||[];d.vueltos=d.vueltos||[];return d;
 }
 function cargar(){
@@ -405,7 +417,9 @@ function verVista(v){
 function cabecera(){$('hNombre').textContent=db.cfg.nombre;$('hFecha').textContent=new Date().toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'})}
 
 /* ---------- Vender ---------- */
-let carrito={},extras=[];
+let carrito={},extras=[],carritoA={};
+/* Acompañamientos del día: duran hasta que cambia el día */
+function acompHoy(){if(db.acomp.fecha!==hoy()){db.acomp={fecha:hoy(),lista:[]};carritoA={};guardar()}return db.acomp.lista}
 function pintarVender(){
   cabecera();pintarTurno();
   const l=$('listaMenus');l.innerHTML='';
@@ -419,6 +433,15 @@ function pintarVender(){
     mas.onclick=()=>{carrito[m.id]=(carrito[m.id]||0)+1;pintarVender()};
     l.append(r);
   });
+  const la=$('listaAcomp');la.innerHTML='';const ac=acompHoy();
+  if(!ac.length)la.innerHTML='<div class="det" style="padding:4px 0">Ninguno todavía. Agrega aquí las porciones de hoy (chifles, papas, arroz…).</div>';
+  ac.forEach(a=>{const r=document.createElement('div');r.className='menu';
+    r.innerHTML=`<button class="sec" style="background:none;padding:0;text-align:left;color:var(--txt)" aria-label="Corregir ${esc(a.nombre)}"><div class="n">${esc(a.nombre)} <span style="font-size:15px">✏️</span></div><div class="p">${dinero(a.precio)}</div></button>
+      <div class="qty"><button aria-label="Quitar">−</button><span>${carritoA[a.id]||0}</span><button aria-label="Añadir">＋</button></div>`;
+    const [ed,menos,mas]=r.querySelectorAll('button');
+    ed.onclick=()=>editarAcomp(a);
+    menos.onclick=()=>{carritoA[a.id]=Math.max(0,(carritoA[a.id]||0)-1);pintarVender()};
+    mas.onclick=()=>{carritoA[a.id]=(carritoA[a.id]||0)+1;pintarVender()};la.append(r)});
   const le=$('listaExtras');le.innerHTML='';
   extras.forEach((x,k)=>{const r=document.createElement('div');r.className='menu';
     r.innerHTML=`<div><div class="n">${esc(x.nombre)} <span class="tag" style="background:#7c3aed">${x.plato?'precio especial':'suelto'}</span></div><div class="p">${dinero(x.precio)} c/u</div></div>
@@ -434,13 +457,27 @@ function pintarVender(){
   if(pv.length){av.innerHTML=`<div class="fila" style="padding:0;border:0"><div class="izq"><div class="nom" style="color:#b45309">🙏 La caja debe vuelto a ${unicos(pv.map(x=>x.cliente)).length} persona(s)</div><div class="det">${esc(unicos(pv.map(x=>x.cliente)).join(', '))} · toca para ver</div></div><div class="monto" style="color:#b45309">${dinero(pv.reduce((s,x)=>s+x.monto,0))}</div></div>`;
     av.onclick=()=>verVista('fiados')}
 }
-function totalCarrito(){return db.menus.reduce((s,m)=>s+(carrito[m.id]||0)*m.precio,0)+extras.reduce((s,x)=>s+x.cant*x.precio,0)}
-/* Otro precio / porción suelta: se añade a la venta actual */
+function totalCarrito(){return db.menus.reduce((s,m)=>s+(carrito[m.id]||0)*m.precio,0)+acompHoy().reduce((s,a)=>s+(carritoA[a.id]||0)*a.precio,0)+extras.reduce((s,x)=>s+x.cant*x.precio,0)}
+/* Agregar o corregir un acompañamiento del día */
+function editarAcomp(a){
+  const iN=$('acNombre'),iP=$('acPrecio');iN.value=a?a.nombre:'';iP.value=a?(a.precio/100).toFixed(2):'';
+  $('acTit').textContent=a?'✏️ Corregir acompañamiento':'🍟 Nuevo acompañamiento de hoy';$('acBorrar').classList.toggle('oculto',!a);
+  const cerrar=()=>$('mAcomp').classList.remove('ver');
+  $('acNo').onclick=cerrar;
+  $('acOk').onclick=()=>{const n=iN.value.trim(),p=aCent(iP.value);
+    if(!n){aviso('Escribe el nombre');return iN.focus()}if(!(p>0)){aviso('Escribe el precio');return iP.focus()}
+    if(a){a.nombre=n;a.precio=p}else acompHoy().push({id:uid(),nombre:n,precio:p});
+    guardar();cerrar();pintarVender();aviso(a?'Corregido':'Agregado: '+n)};
+  $('acBorrar').onclick=()=>{db.acomp.lista=acompHoy().filter(x=>x!==a);delete carritoA[a.id];guardar();cerrar();pintarVender();aviso('Quitado de hoy')};
+  $('mAcomp').classList.add('ver');setTimeout(()=>iN.focus(),150);
+}
+$('btnAcomp').onclick=()=>editarAcomp(null);
+/* Plato a otro precio: se añade a la venta actual */
 $('btnOtro').onclick=()=>{
   const iN=$('otNombre'),iP=$('otPrecio'),iC=$('otPlato');let cant=1;
-  iN.value='';iP.value='';iC.checked=false;
+  iN.value='';iP.value='';iC.checked=true;
   const calc=()=>{$('otCant').textContent=cant;const p=aCent(iP.value);$('otTotal').textContent=p>0?dinero(p*cant):'—';$('otOk').disabled=!(p>0&&iN.value.trim());return p};
-  const chips=[...db.menus.map(m=>({nombre:m.nombre,precio:null,plato:true})),...db.otros.map(o=>({...o,plato:false}))];
+  const chips=db.menus.map(m=>({nombre:m.nombre,precio:null,plato:true}));
   const bs=$('otChips');bs.innerHTML='';
   chips.forEach(c=>{const b=document.createElement('button');b.type='button';b.className='sec';b.style.fontSize='14px';
     b.textContent=c.nombre+(c.precio?' · '+(c.precio/100).toFixed(2):'');
@@ -452,15 +489,15 @@ $('btnOtro').onclick=()=>{
   $('otOk').onclick=()=>{const p=calc(),n=iN.value.trim();if(!(p>0&&n))return;
     const plato=iC.checked,ex=extras.find(x=>x.nombre===n&&x.precio===p&&x.plato===plato);
     if(ex)ex.cant+=cant;else extras.push({nombre:n,precio:p,cant,plato});
-    if(!plato&&!db.menus.some(m=>m.nombre===n)){db.otros=[{nombre:n,precio:p},...db.otros.filter(o=>o.nombre.toLowerCase()!==n.toLowerCase())].slice(0,6);guardar()}
     cerrar();pintarVender();aviso('Añadido: '+cant+'× '+n+' a '+dinero(p))};
   calc();$('mOtro').classList.add('ver');setTimeout(()=>iN.focus(),150);
 };
 document.querySelectorAll('[data-pago]').forEach(b=>b.onclick=()=>vender(b.dataset.pago));
 async function vender(metodo){
   const items=[...db.menus.filter(m=>carrito[m.id]>0).map(m=>({nombre:m.nombre,precio:m.precio,cant:carrito[m.id]})),
+    ...acompHoy().filter(a=>carritoA[a.id]>0).map(a=>({nombre:a.nombre,precio:a.precio,cant:carritoA[a.id],noPlato:true})),
     ...extras.map(x=>({nombre:x.nombre,precio:x.precio,cant:x.cant,especial:true,...(x.plato?{}:{noPlato:true})}))];
-  if(!items.length)return aviso('Elige al menos un menú con ＋ o añade otro precio');
+  if(!items.length)return aviso('Elige al menos un menú o acompañamiento con ＋');
   if(!turnoOk())return;
   const cliente=$('cliente').value.trim();
   if(metodo==='fiado'&&!cliente){$('cliente').focus();return aviso('Para fiado escribe el nombre de la persona')}
@@ -482,7 +519,7 @@ async function vender(metodo){
   if(caja){v.recibido=caja.recibido;v.vuelto=caja.vuelto;
     if(caja.debo>0){v.cliente=v.cliente||caja.nombre;v.vueltoDado=caja.entregado;v.vueltoDebe=caja.debo;apuntarVuelto(v.cliente,caja.debo,v.num,v.id)}}
   if(partes)v.partes=partes;
-  db.ventas.push(v);guardar();carrito={};extras=[];$('cliente').value='';
+  db.ventas.push(v);guardar();carrito={};extras=[];carritoA={};$('cliente').value='';
   pintarVender();
   despuesDeCobrar(docVenta(v),(metodo==='fiado'?'📝 Apuntado como fiado: ':'✔ Cobrado: ')+dinero(total));
 }
@@ -495,7 +532,7 @@ function venderParcial(items,total,cliente,pp){
     pagado:true,pagoMetodo:m,pagoFecha:hoy(),pagoTs:ts};
   const f={id:uid(),num:v.num,ts:ts+1,fecha:hoy(),cliente,items:[{nombre:'Resto de la boleta Nº '+v.num,precio:resto,cant:1}],
     total:resto,metodo:'fiado',grupo:g,cajero:cj,sinPlatos:true,pagado:false,pagoMetodo:null,pagoFecha:null,pagoTs:null};
-  db.ventas.push(v,f);guardar();carrito={};extras=[];$('cliente').value='';pintarVender();
+  db.ventas.push(v,f);guardar();carrito={};extras=[];carritoA={};$('cliente').value='';pintarVender();
   const doc=docVenta(v);doc.total=total;doc.pagadoAhora=pagado;doc.debe=resto;doc.partes=pp;doc.metodo='mixto';
   despuesDeCobrar(doc,'✔ Pagó '+dinero(pagado)+' · 📝 queda debiendo '+dinero(resto));
 }

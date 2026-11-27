@@ -6,7 +6,7 @@
 //  Al subir una versión nueva, cambia el nombre de CACHE (ej. v1-6).
 //  Las ventas NO están aquí: viven en el teléfono y no se borran.
 // =============================================================
-const CACHE = 'caja-mmm-v1-6-pwa';
+const CACHE = 'caja-mmm-v1-7-pwa';
 const FILES = [
   './', './index.html', './manifest.json', './instalar.js',
   './icon.svg', './icon-180.png', './icon-192.png', './icon-512.png', './icon-maskable-512.png'
