@@ -208,6 +208,9 @@ input.con-teclado:focus{border-color:var(--tarj);box-shadow:0 0 0 3px #e4d9fb}
 .avisoDebo{background:#fff7e6;border-color:#d97706;cursor:pointer}
 .turno{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .turno label{margin-top:0}
+.turnoLinea{display:flex;align-items:center;justify-content:center;gap:6px 14px;flex-wrap:wrap;margin:-4px 0 12px;padding:8px 12px;border-radius:14px;background:rgba(255,255,255,.55);color:var(--gris);font-size:14px;text-align:center}
+.turnoLinea b{color:var(--txt);font-weight:700}
+.turnoLinea button{background:none;color:var(--tarj);font-size:13px;padding:6px 8px;text-decoration:underline}
 @media (max-width:480px){.turno{grid-template-columns:1fr}.turno>div+div label{margin-top:4px}}
 </style>
 </head>
@@ -218,13 +221,15 @@ input.con-teclado:focus{border-color:var(--tarj);box-shadow:0 0 0 3px #e4d9fb}
 <!-- VENDER -->
 <section id="v-vender">
   <div class="card avisoDebo oculto" id="avisoDebo"></div>
-  <div class="card">
-    <h2>Turno de hoy</h2>
+  <div class="turnoLinea oculto" id="turnoLinea"></div>
+  <div class="card" id="cardTurno">
+    <h2 id="turnoTit">Turno de hoy</h2>
     <div class="turno">
       <div><label for="tGrupo">👥 Grupo de cocina</label><select id="tGrupo"></select></div>
       <div><label for="tCajero">👤 Responsable de caja</label><input id="tCajero" list="cajeros" autocomplete="off" placeholder="Tu nombre"></div>
     </div>
     <datalist id="cajeros"></datalist>
+    <button class="tarj" id="btnTurno" style="width:100%;padding:14px;margin-top:12px;font-size:16px">✔ Empezar turno</button>
   </div>
   <div>
     <div class="cat"><div class="ico">🍴</div><b>Menús de hoy</b><span id="nMenus"></span></div>
@@ -283,6 +288,7 @@ input.con-teclado:focus{border-color:var(--tarj);box-shadow:0 0 0 3px #e4d9fb}
 
 <!-- AJUSTES -->
 <section id="v-ajustes" class="oculto">
+  <div id="turnoEnAjustes"></div>
   <div class="card">
     <h2>Menús y precios</h2>
     <div id="editMenus"></div>
@@ -356,7 +362,7 @@ input.con-teclado:focus{border-color:var(--tarj);box-shadow:0 0 0 3px #e4d9fb}
     <p class="det" style="margin-top:0">Para empezar una caja nueva (otro grupo, otro menú) o borrar lo que hiciste probando la app.</p>
     <button class="rojo btnReiniciar" style="width:100%;padding:15px">🔄 Reiniciar caja</button>
   </div>
-  <p class="det" style="text-align:center">Caja MMM Ginebra · v2.2 · funciona sin internet</p>
+  <p class="det" style="text-align:center">Caja MMM Ginebra · v2.3 · funciona sin internet</p>
 </section>
 </main>
 
@@ -505,20 +511,39 @@ function nomGrupo(g){return g||'Sin grupo'}
 function unicos(a){return [...new Set(a.filter(Boolean))]}
 
 /* ---------- Turno: grupo de cocina y responsable de caja ---------- */
+/* El turno se pide una vez al día en «Vender». Confirmado, allí solo queda una línea
+   con el grupo y quién atiende, y los campos pasan a «Ajustes» para corregirlos. */
+const turnoListo=()=>db.cfg.turnoFecha===hoy()&&!!db.cfg.cajero&&!(db.grupos.length&&!db.cfg.grupo);
 function pintarTurno(){
   const s=$('tGrupo'),lista=unicos([...db.grupos,db.cfg.grupo]);
   s.innerHTML='<option value="">— Elige el grupo —</option>'+lista.map(g=>`<option>${esc(g)}</option>`).join('');
   s.value=db.cfg.grupo;$('tCajero').value=db.cfg.cajero;
   $('cajeros').innerHTML=db.cajeros.map(n=>`<option value="${esc(n)}">`).join('');
+  const listo=turnoListo(),card=$('cardTurno'),linea=$('turnoLinea');
+  // mover la tarjeta solo si cambia de sitio (moverla sin necesidad cancela el toque en sus botones)
+  if(listo){if(card.parentElement!==$('turnoEnAjustes'))$('turnoEnAjustes').append(card);$('turnoTit').textContent='👥 Turno actual';$('btnTurno').classList.add('oculto')}
+  else{if(linea.nextElementSibling!==card)$('v-vender').insertBefore(card,linea.nextSibling);$('turnoTit').textContent='Turno de hoy';$('btnTurno').classList.remove('oculto')}
+  linea.classList.toggle('oculto',!listo);
+  linea.innerHTML=listo?(db.cfg.grupo?`<span>👥 <b>${esc(db.cfg.grupo)}</b></span>`:'')+`<span>👤 Atiende: <b>${esc(db.cfg.cajero)}</b></span><button type="button" id="btnCambiarTurno">Cambiar</button>`:'';
+  if(listo)$('btnCambiarTurno').onclick=()=>verVista('ajustes');
 }
-$('tGrupo').onchange=e=>{db.cfg.grupo=e.target.value;guardar()};
+$('btnTurno').onclick=()=>{
+  const n=$('tCajero').value.trim();if(n!==db.cfg.cajero)$('tCajero').onchange({target:$('tCajero')});
+  db.cfg.grupo=$('tGrupo').value;
+  if(db.grupos.length&&!db.cfg.grupo){aviso('Elige el grupo de cocina de hoy');return $('tGrupo').focus()}
+  if(!db.cfg.cajero){aviso('Escribe el nombre del responsable de caja');return $('tCajero').focus()}
+  db.cfg.turnoFecha=hoy();guardar();pintarTurno();aviso('✔ Turno de '+db.cfg.cajero+' empezado')};
+$('tGrupo').onchange=e=>{db.cfg.grupo=e.target.value;guardar();pintarTurno()};
 $('tCajero').onchange=e=>{const n=e.target.value.trim();db.cfg.cajero=n;
   if(n&&!db.cajeros.some(x=>x.toLowerCase()===n.toLowerCase()))db.cajeros.push(n),db.cajeros.sort((a,b)=>a.localeCompare(b));
   guardar();pintarTurno()};
 /* Antes de cobrar: tiene que estar el responsable (y el grupo, si hay grupos). */
 function turnoOk(){
   const falta=!db.cfg.cajero?'tCajero':(db.grupos.length&&!db.cfg.grupo?'tGrupo':null);
-  if(!falta)return true;
+  if(!falta&&turnoListo())return true;
+  db.cfg.turnoFecha='';pintarTurno();
+  if(!falta){if($('v-vender').classList.contains('oculto'))verVista('vender');
+    aviso('Confirma el turno de hoy con «Empezar turno»');setTimeout(()=>{$('btnTurno').focus();window.scrollTo(0,0)},80);return false}
   if($('v-vender').classList.contains('oculto'))verVista('vender');
   aviso(falta==='tCajero'?'Escribe el nombre del responsable de caja':'Elige el grupo de cocina de hoy');
   setTimeout(()=>{$(falta).focus();window.scrollTo(0,0)},80);return false;
