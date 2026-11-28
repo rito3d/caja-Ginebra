@@ -633,7 +633,10 @@ async function vender(metodo){
   let caja=null;
   if(metodo==='efectivo'){caja=await pedirEfectivo(total,cliente);if(!caja)return}
   let partes=null;
-  if(metodo==='mixto'){partes=await pedirMixto(total,cliente);if(!partes)return}
+  if(metodo==='mixto'){partes=await pedirMixto(total,cliente);if(!partes)return;
+    if(partes.cambiar){metodo=partes.cambiar;
+      if(metodo==='efectivo'){caja=await pedirEfectivo(total,cliente,partes.recibido);if(!caja)return}
+      partes=null}}
   const v={id:uid(),num:db.cfg.numSig++,ts:Date.now(),fecha:hoy(),cliente,items,total,metodo,grupo:db.cfg.grupo,cajero:db.cfg.cajero,
     pagado:metodo!=='fiado',pagoMetodo:metodo==='fiado'?null:metodo,pagoFecha:metodo==='fiado'?null:hoy(),pagoTs:metodo==='fiado'?null:Date.now()};
   if(caja){v.recibido=caja.recibido;v.vuelto=caja.vuelto;
@@ -672,11 +675,11 @@ function pedirParcial(total,nombre,titulo){
   });
 }
 /* Pide con cuánto paga y calcula el vuelto. Devuelve {recibido,vuelto} o null si cancela. */
-function pedirEfectivo(total,nombre){
+function pedirEfectivo(total,nombre,recibido){
   return new Promise(res=>{
     const inp=$('cjRecibido'),ok=$('cjOk');
     $('cjTotal').textContent=dinero(total);$('cjNombre').textContent=nombre?('Cliente: '+nombre):'';
-    inp.value='';let debo=false;
+    inp.value=recibido>total?(recibido/100).toFixed(2):'';let debo=false;
     const bD=$('cjDebo'),box=$('cjDeboBox'),iN=$('cjDeboNombre'),iD=$('cjDado');
     iN.value=nombre||'';iD.value='';box.classList.add('oculto');ok.textContent='✔ Cobrar';
     const calc=()=>{
@@ -710,14 +713,19 @@ function pedirMixto(total,nombre){
   return new Promise(res=>{
     const inp=$('mxEfec'),ok=$('mxOk');
     $('mxTotal').textContent=dinero(total);$('mxNombre').textContent=nombre?('Cliente: '+nombre):'';inp.value='';
-    const calc=()=>{const e=aCent(inp.value),t=total-e,bien=e>0&&e<total;
-      $('mxTarj').textContent=bien?dinero(t):(e>=total?'Usa «Efectivo»':'—');ok.disabled=!bien;return {efectivo:e,tarjeta:t,bien}};
+    const calc=()=>{const e=aCent(inp.value),t=total-e,bien=e>0&&e<total,todoEfec=e>=total,hay=inp.value.trim()!=='';
+      $('mxTarj').textContent=bien?dinero(t):(todoEfec?'0.00 · todo en efectivo':(hay?'Todo con tarjeta':'—'));
+      ok.textContent=bien?'✔ Cobrar':(todoEfec?'✔ Cobrar todo en efectivo':(hay?'✔ Cobrar todo con tarjeta':'✔ Cobrar'));
+      ok.disabled=!(bien||todoEfec||hay);return {efectivo:e,tarjeta:t,bien,todoEfec,hay}};
     const bs=$('mxBilletes');bs.innerHTML='';
     [10,20,50,100,200].filter(x=>x*100<total).forEach(x=>{const b=document.createElement('button');b.className='sec';b.textContent=x+' '+db.cfg.moneda;
       b.onclick=()=>{inp.value=x.toFixed(2);calc()};bs.append(b)});
     inp.oninput=calc;calc();
     const fin=x=>{$('mMixto').classList.remove('ver');ok.onclick=$('mxNo').onclick=null;res(x)};
-    ok.onclick=()=>{const r=calc();if(r.bien)fin({efectivo:r.efectivo,tarjeta:r.tarjeta})};
+    ok.onclick=()=>{const r=calc();
+      if(r.bien)fin({efectivo:r.efectivo,tarjeta:r.tarjeta});
+      else if(r.todoEfec)fin({cambiar:'efectivo',recibido:r.efectivo});
+      else if(r.hay)fin({cambiar:'tarjeta'})};
     $('mxNo').onclick=()=>fin(null);
     $('mMixto').classList.add('ver');setTimeout(()=>inp.focus(),150);
   });
@@ -838,7 +846,10 @@ function cobrar(vs,nombre,abono){
   preguntar(nombre+' paga '+dinero(tot),'¿Cómo pagó?',[
     {t:'💵 Efectivo',c:'efec',f:async()=>{const c=await pedirEfectivo(tot,nombre);if(c)pagar('efectivo',c)}},
     {t:'💳 Tarjeta',c:'tarj',f:()=>pagar('tarjeta')},
-    {t:'💵💳 Mixto (efectivo + tarjeta)',c:'mixto',f:async()=>{const p=await pedirMixto(tot,nombre);if(p)pagar('mixto',null,p)}}]);
+    {t:'💵💳 Mixto (efectivo + tarjeta)',c:'mixto',f:async()=>{const p=await pedirMixto(tot,nombre);if(!p)return;
+      if(p.cambiar==='efectivo'){const c=await pedirEfectivo(tot,nombre,p.recibido);if(c)pagar('efectivo',c);return}
+      if(p.cambiar==='tarjeta')return pagar('tarjeta');
+      pagar('mixto',null,p)}}]);
 }
 
 /* ---------- Cierre ---------- */
